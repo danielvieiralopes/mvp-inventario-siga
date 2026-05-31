@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MVP Inventário Físico x Siga</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #667085;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --danger: #b42318;
+      --warning: #b54708;
+      --border: #d0d5dd;
+      --soft: #eef6f5;
+      --shadow: 0 12px 28px rgba(16, 24, 40, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary), #164e63);
+      color: #fff;
+      padding: 28px 20px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+    }
+
+    header p {
+      margin: 0;
+      max-width: 980px;
+      line-height: 1.5;
+      opacity: .95;
+    }
+
+    main {
+      width: min(1280px, calc(100% - 32px));
+      margin: 24px auto 60px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(208, 213, 221, .85);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 28px;
+      margin-top: 8px;
+    }
+
+    .metric span { color: var(--muted); font-size: 13px; }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    button, .button-label {
+      background: var(--primary);
+      color: white;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button:hover, .button-label:hover { background: var(--primary-dark); }
+    button.secondary { background: #344054; }
+    button.warning { background: var(--warning); }
+    button.danger { background: var(--danger); }
+
+    input[type="file"] { display: none; }
+
+    input[type="text"], input[type="number"], textarea, select {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 14px;
+      background: #fff;
+      min-height: 38px;
+    }
+
+    input[type="number"] { width: 92px; }
+    input.search { width: min(100%, 360px); }
+
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+
+    nav.tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0;
+    }
+
+    .tab {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    section.panel { display: none; }
+    section.panel.active { display: block; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid #eaecf0;
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: var(--soft);
+      color: #134e4a;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover td { background: #fafafa; }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 620px;
+      border: 1px solid #eaecf0;
+      border-radius: 14px;
+    }
+
+    .muted { color: var(--muted); }
+    .ok { color: var(--primary-dark); font-weight: 700; }
+    .bad { color: var(--danger); font-weight: 700; }
+    .warn { color: var(--warning); font-weight: 700; }
+    .small { font-size: 13px; }
+    .row-actions { display: flex; gap: 8px; align-items: center; }
+    .pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f2f4f7;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .instructions {
+      line-height: 1.55;
+      color: #344054;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .two-cols { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr; }
+      main { width: min(100% - 18px, 1280px); }
+      header { padding: 22px 12px; }
+      th, td { padding: 8px 6px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Inventário Físico x Siga</h1>
+  <p>MVP local para importar sua planilha, lançar a contagem física, gerar lista de compra e comparar com o estoque JSON do Siga para descobrir o que precisa baixar.</p>
+</header>
+
+<main>
+  <div class="card">
+    <div class="toolbar">
+      <label class="button-label">
+        Importar planilha XLSX
+        <input id="excelFile" type="file" accept=".xlsx,.xls" />
+      </label>
+      <button class="secondary" onclick="saveLocal()">Salvar no navegador</button>
+      <button class="secondary" onclick="loadLocal()">Carregar salvo</button>
+      <button onclick="exportWorkbook()">Exportar relatório XLSX</button>
+      <button class="danger" onclick="clearAll()">Limpar dados</button>
+    </div>
+    <div class="instructions small">
+      Use sua planilha atual. O app procura as abas <b>BASE</b>, <b>INVENTARIO</b> e <b>COMPRA</b>. O cruzamento com o Siga é feito pelo código do item: <b>Item</b> da planilha = <b>CodigoAuxiliar</b> do JSON.
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card metric"><span>Itens no inventário</span><strong id="metricItems">0</strong></div>
+    <div class="card metric"><span>Itens para comprar</span><strong id="metricComprar">0</strong></div>
+    <div class="card metric"><span>Itens para baixar no Siga</span><strong id="metricBaixar">0</strong></div>
+    <div class="card metric"><span>Valor total físico</span><strong id="metricValor">R$ 0,00</strong></div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="levantamento" onclick="showTab('levantamento')">1. Levantamento físico</button>
+    <button class="tab" data-tab="compra" onclick="showTab('compra')">2. Lista de compra</button>
+    <button class="tab" data-tab="siga" onclick="showTab('siga')">3. Comparar com Siga</button>
+    <button class="tab" data-tab="relatorio" onclick="showTab('relatorio')">4. Relatório</button>
+  </nav>
+
+  <section id="levantamento" class="panel active card">
+    <div class="toolbar">
+      <input id="searchInventory" class="search" type="text" placeholder="Buscar por item ou descrição..." oninput="renderInventory()" />
+      <button onclick="setEmptyToZero()">Preencher vazios com 0</button>
+      <button class="warning" onclick="resetPhysicalFromBase()">Restaurar qtd da BASE</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Item</th><th>Descrição</th><th>Valor</th><th>Qtd física</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="compra" class="panel card">
+    <div class="toolbar">
+      <input id="searchBuy" class="search" type="text" placeholder="Buscar na compra..." oninput="renderBuyList()" />
+      <select id="buyFilter" onchange="renderBuyList()">
+        <option value="only">Somente comprar > 0</option>
+        <option value="all">Todos os itens</option>
+      </select>
+      <button onclick="downloadCsv('compra')">Baixar CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Descrição</th><th>Qtd física</th><th>Qtd mínima</th><th>Comprar</th><th>Valor</th><th>Total</th></tr>
+        </thead>
+        <tbody id="buyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="siga" class="panel card">
+    <div class="two-cols">
+      <div>
+        <h3>JSON do Siga</h3>
+        <p class="muted small">Cole aqui o JSON exportado do Siga e clique em comparar.</p>
+        <textarea id="sigaJson" placeholder='Cole aqui o JSON do Siga...'></textarea>
+        <div class="toolbar" style="margin-top:10px">
+          <button onclick="compareSiga()">Comparar com inventário físico</button>
+          <button onclick="downloadCsv('baixa')">Baixar CSV da baixa</button>
+        </div>
+        <p id="sigaStatus" class="small muted"></p>
+      </div>
+      <div>
+        <h3>Regras usadas</h3>
+        <div class="instructions">
+          <p><b>Baixa no Siga</b> = Estoque do Siga - Estoque físico.</p>
+          <p>Quando o resultado for menor que zero, o app mostra como divergência/sobra física, mas não gera baixa.</p>
+          <p>O vínculo é feito pelo <b>CodigoAuxiliar</b> do JSON com o <b>Item</b> da planilha.</p>
+        </div>
+      </div>
+    </div>
+    <hr style="border:0;border-top:1px solid #eaecf0;margin:18px 0">
+    <div class="toolbar">
+      <input id="searchSiga" class="search" type="text" placeholder="Buscar na comparação..." oninput="renderSigaDiff()" />
+      <select id="sigaFilter" onchange="renderSigaDiff()">
+        <option value="baixar">Somente baixar > 0</option>
+        <option value="divergencias">Todas divergências</option>
+        <option value="all">Todos comparados</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Descrição</th><th>Qtd Siga</th><th>Qtd física</th><th>Diferença</th><th>Baixar</th><th>Status</th></tr>
+        </thead>
+        <tbody id="sigaBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="relatorio" class="panel card">
+    <div class="toolbar">
+      <button onclick="print()">Imprimir tela</button>
+      <button onclick="exportWorkbook()">Exportar XLSX completo</button>
+    </div>
+    <div id="reportBox" class="instructions"></div>
+  </section>
+</main>
+
+<script>
+  let products = [];
+  let sigaRows = [];
+  let sigaDiff = [];
+
+  const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  function normalizeCode(value) {
+    return String(value ?? '').trim().toUpperCase();
+  }
+
+  function asNumber(value) {
+    if (value === '-' || value === null || value === undefined || value === '') return 0;
+    if (typeof value === 'number') return value;
+    const text = String(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
+    const parsed = Number(text);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function sheetToObjects(workbook, sheetName) {
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) return [];
+    return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  }
+
+  function readInventorySheet(rows) {
+    const headerIndex = rows.findIndex(r => normalizeCode(r[0]) === 'ITEM');
+    if (headerIndex < 0) return new Map();
+    const map = new Map();
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const r = rows[i];
+      const item = normalizeCode(r[0]);
+      if (!item) continue;
+      map.set(item, {
+        item,
+        descricao: String(r[1] ?? '').trim(),
+        valor: asNumber(r[2]),
+        qtdInventario: asNumber(r[3]),
+        total: asNumber(r[4])
+      });
+    }
+    return map;
+  }
+
+  function readCompraSheet(rows) {
+    const headerIndex = rows.findIndex(r => normalizeCode(r[0]) === 'ITEM');
+    if (headerIndex < 0) return new Map();
+    const map = new Map();
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const r = rows[i];
+      const item = normalizeCode(r[0]);
+      if (!item) continue;
+      map.set(item, {
+        item,
+        qtdMinima: asNumber(r[2]),
+        valorCompra: asNumber(r[3])
+      });
+    }
+    return map;
+  }
+
+  function importWorkbook(arrayBuffer) {
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const baseRows = sheetToObjects(workbook, 'BASE');
+    const invMap = readInventorySheet(sheetToObjects(workbook, 'INVENTARIO'));
+    const compraMap = readCompraSheet(sheetToObjects(workbook, 'COMPRA'));
+
+    const headerIndex = baseRows.findIndex(r => normalizeCode(r[0]) === 'ITEM');
+    const list = [];
+    for (let i = headerIndex + 1; i < baseRows.length; i++) {
+      const r = baseRows[i];
+      const item = normalizeCode(r[0]);
+      if (!item) continue;
+      const inv = invMap.get(item) || {};
+      const compra = compraMap.get(item) || {};
+      const valor = asNumber(r[2] ?? inv.valor ?? compra.valorCompra);
+      list.push({
+        ordem: list.length + 1,
+        item,
+        descricao: inv.descricao || '',
+        valor,
+        qtdBase: asNumber(r[1]),
+        qtdFisica: asNumber(r[1]),
+        qtdMinima: asNumber(compra.qtdMinima),
+      });
+    }
+
+    products = list;
+    sigaDiff = [];
+    renderAll();
+  }
+
+  document.getElementById('excelFile').addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const buffer = await file.arrayBuffer();
+    importWorkbook(buffer);
+  });
+
+  function updateQty(index, value) {
+    products[index].qtdFisica = asNumber(value);
+    renderMetrics();
+    renderReport();
+  }
+
+  function renderInventory() {
+    const body = document.getElementById('inventoryBody');
+    const search = normalizeCode(document.getElementById('searchInventory').value);
+    body.innerHTML = '';
+    products
+      .filter(p => !search || p.item.includes(search) || normalizeCode(p.descricao).includes(search))
+      .forEach((p, visibleIndex) => {
+        const index = products.indexOf(p);
+        const total = p.qtdFisica * p.valor;
+        body.insertAdjacentHTML('beforeend', `
+          <tr>
+            <td>${visibleIndex + 1}</td>
+            <td><b>${p.item}</b></td>
+            <td>${escapeHtml(p.descricao)}</td>
+            <td>${money.format(p.valor)}</td>
+            <td><input type="number" min="0" step="1" value="${p.qtdFisica}" onchange="updateQty(${index}, this.value)"></td>
+            <td>${money.format(total)}</td>
+          </tr>`);
+      });
+  }
+
+  function getBuyList() {
+    return products.map(p => {
+      const comprar = Math.max(0, asNumber(p.qtdMinima) - asNumber(p.qtdFisica));
+      return { ...p, comprar, totalCompra: comprar * p.valor };
+    });
+  }
+
+  function renderBuyList() {
+    const body = document.getElementById('buyBody');
+    const search = normalizeCode(document.getElementById('searchBuy').value);
+    const filter = document.getElementById('buyFilter').value;
+    body.innerHTML = '';
+    getBuyList()
+      .filter(p => filter === 'all' || p.comprar > 0)
+      .filter(p => !search || p.item.includes(search) || normalizeCode(p.descricao).includes(search))
+      .forEach(p => {
+        body.insertAdjacentHTML('beforeend', `
+          <tr>
+            <td><b>${p.item}</b></td>
+            <td>${escapeHtml(p.descricao)}</td>
+            <td>${p.qtdFisica}</td>
+            <td>${p.qtdMinima}</td>
+            <td class="${p.comprar > 0 ? 'bad' : 'ok'}">${p.comprar}</td>
+            <td>${money.format(p.valor)}</td>
+            <td>${money.format(p.totalCompra)}</td>
+          </tr>`);
+      });
+  }
+
+  function compareSiga() {
+    const raw = document.getElementById('sigaJson').value.trim();
+    if (!raw) {
+      alert('Cole o JSON do Siga primeiro.');
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      alert('JSON inválido. Confira se copiou o conteúdo completo.');
+      return;
+    }
+
+    const items = parsed?.d?.items || parsed?.items || [];
+    const productMap = new Map(products.map(p => [p.item, p]));
+    sigaRows = items
+      .filter(x => x && !x.disabled && x.detail)
+      .map(x => ({
+        idSiga: x.id,
+        item: normalizeCode(x.detail.CodigoAuxiliar || x.detail.Codigo),
+        descricaoSiga: String(x.text || x.detail.Descricao || '').trim(),
+        qtdSiga: asNumber(x.detail.SaldoLocal ?? x.detail.Estoque),
+        unidade: x.detail.UnidadeMedida || ''
+      }))
+      .filter(x => x.item);
+
+    sigaDiff = sigaRows.map(s => {
+      const p = productMap.get(s.item);
+      const qtdFisica = p ? asNumber(p.qtdFisica) : 0;
+      const diff = s.qtdSiga - qtdFisica;
+      return {
+        item: s.item,
+        descricao: p?.descricao || s.descricaoSiga,
+        qtdSiga: s.qtdSiga,
+        qtdFisica,
+        diff,
+        baixar: Math.max(0, diff),
+        status: !p ? 'Não encontrado na planilha' : diff > 0 ? 'Baixar no Siga' : diff < 0 ? 'Físico maior que Siga' : 'OK'
+      };
+    });
+
+    document.getElementById('sigaStatus').textContent = `JSON lido com ${sigaRows.length} itens válidos do Siga.`;
+    renderAll();
+    showTab('siga');
+  }
+
+  function renderSigaDiff() {
+    const body = document.getElementById('sigaBody');
+    const search = normalizeCode(document.getElementById('searchSiga').value);
+    const filter = document.getElementById('sigaFilter').value;
+    body.innerHTML = '';
+    sigaDiff
+      .filter(r => {
+        if (filter === 'baixar') return r.baixar > 0;
+        if (filter === 'divergencias') return r.diff !== 0;
+        return true;
+      })
+      .filter(r => !search || r.item.includes(search) || normalizeCode(r.descricao).includes(search))
+      .forEach(r => {
+        const cls = r.baixar > 0 ? 'bad' : r.diff < 0 ? 'warn' : 'ok';
+        body.insertAdjacentHTML('beforeend', `
+          <tr>
+            <td><b>${r.item}</b></td>
+            <td>${escapeHtml(r.descricao)}</td>
+            <td>${r.qtdSiga}</td>
+            <td>${r.qtdFisica}</td>
+            <td class="${cls}">${r.diff}</td>
+            <td class="${r.baixar > 0 ? 'bad' : 'ok'}">${r.baixar}</td>
+            <td><span class="pill">${r.status}</span></td>
+          </tr>`);
+      });
+  }
+
+  function renderMetrics() {
+    const buy = getBuyList().filter(x => x.comprar > 0);
+    const baixar = sigaDiff.filter(x => x.baixar > 0);
+    const valor = products.reduce((sum, p) => sum + (p.qtdFisica * p.valor), 0);
+    document.getElementById('metricItems').textContent = products.length;
+    document.getElementById('metricComprar').textContent = buy.length;
+    document.getElementById('metricBaixar').textContent = baixar.length;
+    document.getElementById('metricValor').textContent = money.format(valor);
+  }
+
+  function renderReport() {
+    const buy = getBuyList().filter(x => x.comprar > 0);
+    const baixa = sigaDiff.filter(x => x.baixar > 0);
+    const valorFisico = products.reduce((sum, p) => sum + (p.qtdFisica * p.valor), 0);
+    const valorCompra = buy.reduce((sum, p) => sum + p.totalCompra, 0);
+    document.getElementById('reportBox').innerHTML = `
+      <h3>Resumo do inventário</h3>
+      <p><b>Data:</b> ${new Date().toLocaleString('pt-BR')}</p>
+      <p><b>Total de itens contados:</b> ${products.length}</p>
+      <p><b>Valor total do estoque físico:</b> ${money.format(valorFisico)}</p>
+      <p><b>Itens para compra:</b> ${buy.length} | <b>Valor estimado:</b> ${money.format(valorCompra)}</p>
+      <p><b>Itens para baixa no Siga:</b> ${baixa.length}</p>
+    `;
+  }
+
+  function renderAll() {
+    renderInventory();
+    renderBuyList();
+    renderSigaDiff();
+    renderMetrics();
+    renderReport();
+  }
+
+  function showTab(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+    renderAll();
+  }
+
+  function setEmptyToZero() {
+    products.forEach(p => { if (p.qtdFisica === null || p.qtdFisica === undefined || p.qtdFisica === '') p.qtdFisica = 0; });
+    renderAll();
+  }
+
+  function resetPhysicalFromBase() {
+    if (!confirm('Restaurar as quantidades físicas com os valores originais da aba BASE?')) return;
+    products.forEach(p => p.qtdFisica = p.qtdBase);
+    renderAll();
+  }
+
+  function saveLocal() {
+    localStorage.setItem('mvpInventarioSiga', JSON.stringify({ products, sigaJson: document.getElementById('sigaJson').value, sigaDiff }));
+    alert('Dados salvos neste navegador.');
+  }
+
+  function loadLocal() {
+    const saved = localStorage.getItem('mvpInventarioSiga');
+    if (!saved) return alert('Nenhum dado salvo encontrado.');
+    const data = JSON.parse(saved);
+    products = data.products || [];
+    sigaDiff = data.sigaDiff || [];
+    document.getElementById('sigaJson').value = data.sigaJson || '';
+    renderAll();
+  }
+
+  function clearAll() {
+    if (!confirm('Limpar todos os dados carregados?')) return;
+    products = [];
+    sigaRows = [];
+    sigaDiff = [];
+    document.getElementById('sigaJson').value = '';
+    renderAll();
+  }
+
+  function rowsToSheet(rows) {
+    return XLSX.utils.json_to_sheet(rows);
+  }
+
+  function exportWorkbook() {
+    if (!window.XLSX) return alert('Biblioteca XLSX não carregou. Verifique a internet.');
+    const wb = XLSX.utils.book_new();
+    const inventario = products.map(p => ({
+      Item: p.item,
+      Descrição: p.descricao,
+      Valor: p.valor,
+      'Qtd Física': p.qtdFisica,
+      Total: p.qtdFisica * p.valor
+    }));
+    const compra = getBuyList().filter(p => p.comprar > 0).map(p => ({
+      Item: p.item,
+      Descrição: p.descricao,
+      'Qtd Física': p.qtdFisica,
+      'Qtd Mínima': p.qtdMinima,
+      Comprar: p.comprar,
+      Valor: p.valor,
+      Total: p.totalCompra
+    }));
+    const baixa = sigaDiff.filter(r => r.baixar > 0).map(r => ({
+      Item: r.item,
+      Descrição: r.descricao,
+      'Qtd Siga': r.qtdSiga,
+      'Qtd Física': r.qtdFisica,
+      Diferença: r.diff,
+      Baixar: r.baixar,
+      Status: r.status
+    }));
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(inventario), 'INVENTARIO_FISICO');
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(compra), 'COMPRA');
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(baixa), 'BAIXA_SIGA');
+    XLSX.writeFile(wb, `inventario-siga-${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  function toCsv(rows) {
+    if (!rows.length) return '';
+    const headers = Object.keys(rows[0]);
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    return [headers.join(';'), ...rows.map(r => headers.map(h => esc(r[h])).join(';'))].join('\n');
+  }
+
+  function downloadCsv(type) {
+    let rows = [];
+    let name = 'dados.csv';
+    if (type === 'compra') {
+      rows = getBuyList().filter(p => p.comprar > 0).map(p => ({ Item: p.item, Descricao: p.descricao, QtdFisica: p.qtdFisica, QtdMinima: p.qtdMinima, Comprar: p.comprar, Valor: p.valor, Total: p.totalCompra }));
+      name = 'lista-compra.csv';
+    }
+    if (type === 'baixa') {
+      rows = sigaDiff.filter(r => r.baixar > 0).map(r => ({ Item: r.item, Descricao: r.descricao, QtdSiga: r.qtdSiga, QtdFisica: r.qtdFisica, Baixar: r.baixar, Status: r.status }));
+      name = 'baixa-siga.csv';
+    }
+    if (!rows.length) return alert('Não há dados para exportar.');
+    const blob = new Blob(['\ufeff' + toCsv(rows)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function escapeHtml(text) {
+    return String(text ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  }
+
+  renderAll();
+</script>
+</body>
+</html>
