@@ -35,17 +35,8 @@
       padding: 28px 20px;
     }
 
-    header h1 {
-      margin: 0 0 8px;
-      font-size: 26px;
-    }
-
-    header p {
-      margin: 0;
-      max-width: 980px;
-      line-height: 1.5;
-      opacity: .95;
-    }
+    header h1 { margin: 0 0 8px; font-size: 26px; }
+    header p { margin: 0; max-width: 980px; line-height: 1.5; opacity: .95; }
 
     main {
       width: min(1280px, calc(100% - 32px));
@@ -67,12 +58,7 @@
       padding: 18px;
     }
 
-    .metric strong {
-      display: block;
-      font-size: 28px;
-      margin-top: 8px;
-    }
-
+    .metric strong { display: block; font-size: 28px; margin-top: 8px; }
     .metric span { color: var(--muted); font-size: 13px; }
 
     .toolbar {
@@ -81,6 +67,109 @@
       flex-wrap: wrap;
       align-items: center;
       margin-bottom: 14px;
+    }
+
+    .action-bar {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .action-group {
+      border: 1px solid #eaecf0;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fcfcfd;
+    }
+
+    .action-group-title {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .action-group-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .section-header h3, .section-header p { margin: 0; }
+
+    .field, .summary-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field span, .summary-box span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .field input { width: 100%; min-width: 180px; }
+
+    .finance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .summary-box {
+      justify-content: center;
+      padding: 14px;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      background: #fcfcfd;
+    }
+
+    .summary-box strong { font-size: 20px; }
+    .summary-box small { color: var(--muted); }
+
+    .chip-list, .column-toggles, .history-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip, .column-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #fff;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .chip input, .column-toggle input { margin: 0; accent-color: var(--primary); }
+
+    .table-tools {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
     button, .button-label {
@@ -99,11 +188,12 @@
 
     button:hover, .button-label:hover { background: var(--primary-dark); }
     button.secondary { background: #344054; }
+    .button-label.secondary-label { background: #344054; }
+    .button-label.secondary-label:hover { background: #1d2939; }
     button.warning { background: var(--warning); }
     button.danger { background: var(--danger); }
 
     input[type="file"] { display: none; }
-
     input[type="text"], input[type="number"], textarea, select {
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -182,7 +272,6 @@
     .bad { color: var(--danger); font-weight: 700; }
     .warn { color: var(--warning); font-weight: 700; }
     .small { font-size: 13px; }
-    .row-actions { display: flex; gap: 8px; align-items: center; }
     .pill {
       padding: 4px 8px;
       border-radius: 999px;
@@ -203,13 +292,33 @@
       color: #344054;
     }
 
+    .history-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .history-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .col-hidden { display: none !important; }
+
     @media (max-width: 900px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
+      .action-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .two-cols { grid-template-columns: 1fr; }
+      .finance-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 560px) {
       .grid { grid-template-columns: 1fr; }
+      .action-bar { grid-template-columns: 1fr; }
       main { width: min(100% - 18px, 1280px); }
       header { padding: 22px 12px; }
       th, td { padding: 8px 6px; }
@@ -224,18 +333,71 @@
 
 <main>
   <div class="card">
-    <div class="toolbar">
-      <label class="button-label">
-        Importar planilha XLSX
-        <input id="excelFile" type="file" accept=".xlsx,.xls" />
-      </label>
-      <button class="secondary" onclick="saveLocal()">Salvar no navegador</button>
-      <button class="secondary" onclick="loadLocal()">Carregar salvo</button>
-      <button onclick="exportWorkbook()">Exportar relatório XLSX</button>
-      <button class="danger" onclick="clearAll()">Limpar dados</button>
+    <div class="action-bar">
+      <div class="action-group">
+        <span class="action-group-title">Entrada</span>
+        <div class="action-group-buttons">
+          <label class="button-label">
+            Abrir planilha
+            <input id="excelFile" type="file" accept=".xlsx,.xls" />
+          </label>
+          <label class="button-label secondary-label">
+            Importar quantidades
+            <input id="quantityReportFile" type="file" accept=".xlsx,.xls" />
+          </label>
+        </div>
+      </div>
+      <div class="action-group">
+        <span class="action-group-title">Navegador</span>
+        <div class="action-group-buttons">
+          <button class="secondary" onclick="saveLocal()">Salvar aqui</button>
+          <button class="secondary" onclick="loadLocal()">Restaurar daqui</button>
+        </div>
+      </div>
+      <div class="action-group">
+        <span class="action-group-title">Arquivos</span>
+        <div class="action-group-buttons">
+          <button class="secondary" onclick="exportBackup()">Baixar backup</button>
+          <label class="button-label secondary-label">
+            Restaurar backup
+            <input id="backupFile" type="file" accept=".json,application/json" />
+          </label>
+          <button onclick="exportWorkbook()">Baixar relatório</button>
+        </div>
+      </div>
+      <div class="action-group">
+        <span class="action-group-title">Sessão</span>
+        <div class="action-group-buttons">
+          <button class="danger" onclick="clearAll()">Limpar dados</button>
+        </div>
+      </div>
     </div>
     <div class="instructions small">
-      Use sua planilha atual. O app procura as abas <b>BASE</b>, <b>INVENTARIO</b> e <b>COMPRA</b>. O cruzamento com o Siga é feito pelo código do item: <b>Item</b> da planilha = <b>CodigoAuxiliar</b> do JSON.
+      Use sua planilha atual. O app procura as abas <b>BASE</b>, <b>INVENTARIO</b> e <b>COMPRA</b>. O cruzamento com o Siga é feito pelo código do item: <b>Item</b> da planilha = <b>CodigoAuxiliar</b> do JSON. A quantidade física fica em branco até você preencher.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <div>
+        <h3>Painel de caixa e fechamento</h3>
+        <p class="muted small">Informe o caixa físico e o valor que o Siga está contabilizando.</p>
+      </div>
+    </div>
+    <div class="finance-grid">
+      <label class="field">
+        <span>Dinheiro físico</span>
+        <input id="cashPhysical" type="text" inputmode="numeric" value="R$ 0,00" oninput="updateFinance('cashPhysical', this)" />
+      </label>
+      <label class="field">
+        <span>Dinheiro no Siga</span>
+        <input id="cashSiga" type="text" inputmode="numeric" value="R$ 0,00" oninput="updateFinance('cashSiga', this)" />
+      </label>
+      <div class="summary-box">
+        <span>Diferença caixa x Siga</span>
+        <strong id="cashDiffDisplay">R$ 0,00</strong>
+        <small id="cashDiffLabel">Equilibrado</small>
+      </div>
     </div>
   </div>
 
@@ -244,6 +406,10 @@
     <div class="card metric"><span>Itens para comprar</span><strong id="metricComprar">0</strong></div>
     <div class="card metric"><span>Itens para baixar no Siga</span><strong id="metricBaixar">0</strong></div>
     <div class="card metric"><span>Valor total físico</span><strong id="metricValor">R$ 0,00</strong></div>
+    <div class="card metric"><span>Dinheiro físico</span><strong id="metricCashPhysical">R$ 0,00</strong></div>
+    <div class="card metric"><span>Dinheiro no Siga</span><strong id="metricCashSiga">R$ 0,00</strong></div>
+    <div class="card metric"><span>Diferença caixa x Siga</span><strong id="metricCashDiff">R$ 0,00</strong></div>
+    <div class="card metric"><span>Fundo bíblico atual</span><strong id="metricFundCurrent">R$ 0,00</strong></div>
   </div>
 
   <nav class="tabs">
@@ -251,19 +417,23 @@
     <button class="tab" data-tab="compra" onclick="showTab('compra')">2. Lista de compra</button>
     <button class="tab" data-tab="siga" onclick="showTab('siga')">3. Comparar com Siga</button>
     <button class="tab" data-tab="relatorio" onclick="showTab('relatorio')">4. Relatório</button>
+    <button class="tab" data-tab="fechamentos" onclick="showTab('fechamentos')">5. Fechamentos</button>
   </nav>
 
   <section id="levantamento" class="panel active card">
-    <div class="toolbar">
-      <input id="searchInventory" class="search" type="text" placeholder="Buscar por item ou descrição..." oninput="renderInventory()" />
-      <button onclick="setEmptyToZero()">Preencher vazios com 0</button>
-      <button class="warning" onclick="resetPhysicalFromBase()">Restaurar qtd da BASE</button>
+    <div class="table-tools">
+      <div class="toolbar">
+        <input id="searchInventory" class="search" type="text" placeholder="Buscar por item ou descrição..." oninput="renderInventory()" />
+        <button onclick="setEmptyToZero()">Preencher vazios com 0</button>
+        <button class="warning" onclick="resetPhysicalFromBase()">Restaurar qtd da BASE</button>
+      </div>
+      <div id="inventoryControls" class="column-toggles"></div>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Item</th><th>Descrição</th><th>Valor</th><th>Qtd física</th><th>Total</th>
+            <th data-col="index">#</th><th data-col="item">Item</th><th data-col="descricao">Descrição</th><th data-col="valor">Valor</th><th data-col="qtdFisica">Qtd física</th><th data-col="total">Total</th>
           </tr>
         </thead>
         <tbody id="inventoryBody"></tbody>
@@ -272,22 +442,33 @@
   </section>
 
   <section id="compra" class="panel card">
-    <div class="toolbar">
-      <input id="searchBuy" class="search" type="text" placeholder="Buscar na compra..." oninput="renderBuyList()" />
-      <select id="buyFilter" onchange="renderBuyList()">
-        <option value="only">Somente comprar > 0</option>
-        <option value="all">Todos os itens</option>
-      </select>
-      <button onclick="downloadCsv('compra')">Baixar CSV</button>
+    <div class="table-tools">
+      <div class="toolbar">
+        <input id="searchBuy" class="search" type="text" placeholder="Buscar na compra..." oninput="renderBuyList()" />
+        <button class="secondary" onclick="copyInventoryToBuySurvey()">Usar qtd física</button>
+        <button class="warning" onclick="clearBuySurvey()">Zerar levantamento</button>
+        <button onclick="saveBuyListHistory()">Salvar lista no histórico</button>
+        <button class="secondary" onclick="copyBuyListText()">Copiar pedido</button>
+        <button onclick="downloadCsv('compra')">Baixar CSV</button>
+      </div>
+      <div id="buyFilters" class="chip-list"></div>
+      <div id="buyControls" class="column-toggles"></div>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Item</th><th>Descrição</th><th>Qtd física</th><th>Qtd mínima</th><th>Comprar</th><th>Valor</th><th>Total</th></tr>
+          <tr><th data-col="item">Item</th><th data-col="descricao">Descrição</th><th data-col="qtdCompra">Qtd levantada</th><th data-col="qtdFisica">Qtd física</th><th data-col="qtdMinima">Qtd mínima</th><th data-col="comprar">Comprar</th><th data-col="valor">Valor</th><th data-col="total">Total</th></tr>
         </thead>
         <tbody id="buyBody"></tbody>
       </table>
     </div>
+    <div class="section-header" style="margin-top:18px">
+      <div>
+        <h3>Histórico de listas de compra</h3>
+        <p class="muted small">Guarde levantamentos avulsos feitos durante o mês.</p>
+      </div>
+    </div>
+    <div id="buyHistory" class="history-list"></div>
   </section>
 
   <section id="siga" class="panel card">
@@ -295,12 +476,20 @@
       <div>
         <h3>JSON do Siga</h3>
         <p class="muted small">Cole aqui o JSON exportado do Siga e clique em comparar.</p>
-        <textarea id="sigaJson" placeholder='Cole aqui o JSON do Siga...'></textarea>
+        <textarea id="sigaJson" placeholder="Cole aqui o JSON do Siga..."></textarea>
         <div class="toolbar" style="margin-top:10px">
           <button onclick="compareSiga()">Comparar com inventário físico</button>
+          <button class="secondary" onclick="saveSigaJsonToHistory()">Salvar no histórico</button>
           <button onclick="downloadCsv('baixa')">Baixar CSV da baixa</button>
         </div>
         <p id="sigaStatus" class="small muted"></p>
+        <div class="section-header" style="margin-top:18px">
+          <div>
+            <h3>Histórico de JSON</h3>
+            <p class="muted small">Use versões anteriores para comparar antes e depois do lançamento.</p>
+          </div>
+        </div>
+        <div id="sigaHistory" class="history-list"></div>
       </div>
       <div>
         <h3>Regras usadas</h3>
@@ -308,22 +497,22 @@
           <p><b>Baixa no Siga</b> = Estoque do Siga - Estoque físico.</p>
           <p>Quando o resultado for menor que zero, o app mostra como divergência/sobra física, mas não gera baixa.</p>
           <p>O vínculo é feito pelo <b>CodigoAuxiliar</b> do JSON com o <b>Item</b> da planilha.</p>
+          <p>A diferença do caixa mostra se precisa repor dinheiro ou se o excedente pode ser tratado como oferta/sobra de troco.</p>
         </div>
       </div>
     </div>
     <hr style="border:0;border-top:1px solid #eaecf0;margin:18px 0">
-    <div class="toolbar">
-      <input id="searchSiga" class="search" type="text" placeholder="Buscar na comparação..." oninput="renderSigaDiff()" />
-      <select id="sigaFilter" onchange="renderSigaDiff()">
-        <option value="baixar">Somente baixar > 0</option>
-        <option value="divergencias">Todas divergências</option>
-        <option value="all">Todos comparados</option>
-      </select>
+    <div class="table-tools">
+      <div class="toolbar">
+        <input id="searchSiga" class="search" type="text" placeholder="Buscar na comparação..." oninput="renderSigaDiff()" />
+      </div>
+      <div id="sigaFilters" class="chip-list"></div>
+      <div id="sigaControls" class="column-toggles"></div>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Item</th><th>Descrição</th><th>Qtd Siga</th><th>Qtd física</th><th>Diferença</th><th>Baixar</th><th>Status</th></tr>
+          <tr><th data-col="item">Item</th><th data-col="descricao">Descrição</th><th data-col="qtdSiga">Qtd Siga</th><th data-col="qtdFisica">Qtd física</th><th data-col="diferenca">Diferença</th><th data-col="baixar">Baixar</th><th data-col="status">Status</th></tr>
         </thead>
         <tbody id="sigaBody"></tbody>
       </table>
@@ -334,383 +523,933 @@
     <div class="toolbar">
       <button onclick="print()">Imprimir tela</button>
       <button onclick="exportWorkbook()">Exportar XLSX completo</button>
+      <button class="secondary" onclick="finishClosing()">Finalizar fechamento</button>
     </div>
     <div id="reportBox" class="instructions"></div>
+  </section>
+
+  <section id="fechamentos" class="panel card">
+    <div class="section-header">
+      <div>
+        <h3>Fechamentos mensais</h3>
+        <p class="muted small">Salve o estado de um mês, inicie uma nova contagem e restaure fechamentos anteriores quando precisar consultar.</p>
+      </div>
+      <div class="toolbar" style="margin:0">
+        <button onclick="finishClosing()">Finalizar fechamento atual</button>
+        <button class="warning" onclick="startNewClosing()">Iniciar novo fechamento</button>
+      </div>
+    </div>
+    <div id="closingList" class="history-list"></div>
   </section>
 </main>
 
 <script>
+  const STORAGE_KEY = 'mvpInventarioSiga';
+  const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const TABLE_COLUMNS = {
+    inventory: ['index', 'item', 'descricao', 'valor', 'qtdFisica', 'total'],
+    buy: ['item', 'descricao', 'qtdCompra', 'qtdFisica', 'qtdMinima', 'comprar', 'valor', 'total'],
+    siga: ['item', 'descricao', 'qtdSiga', 'qtdFisica', 'diferenca', 'baixar', 'status'],
+  };
+
+  function defaultUiState() {
+    return {
+      finance: { cashPhysical: 0, cashSiga: 0 },
+      columns: {
+        inventory: { index: true, item: true, descricao: true, valor: true, qtdFisica: true, total: true },
+        buy: { item: true, descricao: true, qtdCompra: true, qtdFisica: false, qtdMinima: true, comprar: true, valor: true, total: true },
+        siga: { item: true, descricao: true, qtdSiga: true, qtdFisica: true, diferenca: true, baixar: true, status: true },
+      },
+      filters: {
+        buy: { comprar: true, semCompra: false },
+        siga: { baixar: true, divergencia: true, ok: false, naoEncontrado: true },
+      },
+      sigaHistory: [],
+      buyHistory: [],
+      closings: [],
+    };
+  }
+
   let products = [];
   let sigaRows = [];
   let sigaDiff = [];
+  let uiState = defaultUiState();
+  let visibleInventoryIndexes = [];
+  let pendingFocusIndex = null;
+  let visibleBuyIndexes = [];
+  let pendingBuyFocusIndex = null;
 
-  const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-
-  function normalizeCode(value) {
-    return String(value ?? '').trim().toUpperCase();
-  }
-
+  function normalizeCode(value) { return String(value ?? '').trim().toUpperCase(); }
+  function normalizeHeader(value) { return normalizeCode(value).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   function asNumber(value) {
     if (value === '-' || value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
-    const text = String(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-    const parsed = Number(text);
+    const parsed = Number(String(value).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, ''));
     return Number.isFinite(parsed) ? parsed : 0;
   }
-
+  function asNullableNumber(value) {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    return text ? asNumber(text) : null;
+  }
+  function asCurrencyInputNumber(value) {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits ? Number(digits) / 100 : 0;
+  }
+  function formatCurrencyInput(value) {
+    return money.format(asNumber(value));
+  }
+  function cloneData(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+  function getSigaJsonValue() {
+    return document.getElementById('sigaJson')?.value || '';
+  }
+  function getUiStateForSnapshot(includeClosings = true) {
+    const snapshot = cloneData(uiState);
+    if (!includeClosings) snapshot.closings = [];
+    return snapshot;
+  }
+  function getSystemSnapshot(includeClosings = true) {
+    return {
+      products: cloneData(products),
+      sigaJson: getSigaJsonValue(),
+      sigaDiff: cloneData(sigaDiff),
+      sigaRows: cloneData(sigaRows),
+      uiState: getUiStateForSnapshot(includeClosings),
+    };
+  }
+  function saveStateToLocal() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(getSystemSnapshot(true)));
+  }
+  function restoreSystemSnapshot(snapshot, options = {}) {
+    const currentClosings = uiState.closings || [];
+    products = Array.isArray(snapshot.products) ? snapshot.products : [];
+    sigaRows = Array.isArray(snapshot.sigaRows) ? snapshot.sigaRows : [];
+    sigaDiff = Array.isArray(snapshot.sigaDiff) ? snapshot.sigaDiff : [];
+    uiState = buildStateFromSaved(snapshot.uiState);
+    if (options.preserveClosings) uiState.closings = currentClosings;
+    document.getElementById('sigaJson').value = typeof snapshot.sigaJson === 'string' ? snapshot.sigaJson : '';
+  }
   function sheetToObjects(workbook, sheetName) {
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) return [];
     return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
   }
-
   function readInventorySheet(rows) {
-    const headerIndex = rows.findIndex(r => normalizeCode(r[0]) === 'ITEM');
+    const headerIndex = rows.findIndex(row => normalizeCode(row[0]) === 'ITEM');
     if (headerIndex < 0) return new Map();
     const map = new Map();
     for (let i = headerIndex + 1; i < rows.length; i++) {
-      const r = rows[i];
-      const item = normalizeCode(r[0]);
+      const row = rows[i];
+      const item = normalizeCode(row[0]);
       if (!item) continue;
-      map.set(item, {
-        item,
-        descricao: String(r[1] ?? '').trim(),
-        valor: asNumber(r[2]),
-        qtdInventario: asNumber(r[3]),
-        total: asNumber(r[4])
-      });
+      map.set(item, { item, descricao: String(row[1] ?? '').trim(), valor: asNumber(row[2]), qtdInventario: asNumber(row[3]), total: asNumber(row[4]) });
     }
     return map;
   }
-
   function readCompraSheet(rows) {
-    const headerIndex = rows.findIndex(r => normalizeCode(r[0]) === 'ITEM');
+    const headerIndex = rows.findIndex(row => normalizeCode(row[0]) === 'ITEM');
     if (headerIndex < 0) return new Map();
     const map = new Map();
     for (let i = headerIndex + 1; i < rows.length; i++) {
-      const r = rows[i];
-      const item = normalizeCode(r[0]);
+      const row = rows[i];
+      const item = normalizeCode(row[0]);
       if (!item) continue;
-      map.set(item, {
-        item,
-        qtdMinima: asNumber(r[2]),
-        valorCompra: asNumber(r[3])
-      });
+      map.set(item, { item, qtdMinima: asNumber(row[2]), valorCompra: asNumber(row[3]) });
     }
     return map;
   }
-
+  function readQuantityReportSheet(rows) {
+    const headerIndex = rows.findIndex(row => row.some(cell => normalizeHeader(cell) === 'ITEM') && row.some(cell => normalizeHeader(cell) === 'QTD FISICA'));
+    if (headerIndex < 0) return new Map();
+    const headers = rows[headerIndex].map(normalizeHeader);
+    const itemIndex = headers.indexOf('ITEM');
+    const qtyIndex = headers.indexOf('QTD FISICA');
+    const map = new Map();
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const item = normalizeCode(row[itemIndex]);
+      if (!item) continue;
+      map.set(item, asNullableNumber(row[qtyIndex]));
+    }
+    return map;
+  }
+  function rebuildSigaDiffFromRows() {
+    const productMap = new Map(products.map(product => [product.item, product]));
+    sigaDiff = sigaRows.map(sigaItem => {
+      const product = productMap.get(sigaItem.item);
+      const qtdFisica = product ? asNumber(product.qtdFisica) : 0;
+      const diff = sigaItem.qtdSiga - qtdFisica;
+      const status = !product ? 'naoEncontrado' : diff > 0 ? 'baixar' : diff < 0 ? 'divergencia' : 'ok';
+      return { item: sigaItem.item, descricao: product?.descricao || sigaItem.descricaoSiga, qtdSiga: sigaItem.qtdSiga, qtdFisica, diff, baixar: Math.max(0, diff), status };
+    });
+  }
+  function buildStateFromSaved(saved) {
+    const defaults = defaultUiState();
+    return {
+      finance: { ...defaults.finance, ...(saved?.finance || {}) },
+      columns: {
+        inventory: { ...defaults.columns.inventory, ...(saved?.columns?.inventory || {}) },
+        buy: { ...defaults.columns.buy, ...(saved?.columns?.buy || {}) },
+        siga: { ...defaults.columns.siga, ...(saved?.columns?.siga || {}) },
+      },
+      filters: {
+        buy: { ...defaults.filters.buy, ...(saved?.filters?.buy || {}) },
+        siga: { ...defaults.filters.siga, ...(saved?.filters?.siga || {}) },
+      },
+      sigaHistory: Array.isArray(saved?.sigaHistory) ? saved.sigaHistory : [],
+      buyHistory: Array.isArray(saved?.buyHistory) ? saved.buyHistory : [],
+      closings: Array.isArray(saved?.closings) ? saved.closings : [],
+    };
+  }
   function importWorkbook(arrayBuffer) {
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
     const baseRows = sheetToObjects(workbook, 'BASE');
     const invMap = readInventorySheet(sheetToObjects(workbook, 'INVENTARIO'));
     const compraMap = readCompraSheet(sheetToObjects(workbook, 'COMPRA'));
-
-    const headerIndex = baseRows.findIndex(r => normalizeCode(r[0]) === 'ITEM');
+    const headerIndex = baseRows.findIndex(row => normalizeCode(row[0]) === 'ITEM');
     const list = [];
     for (let i = headerIndex + 1; i < baseRows.length; i++) {
-      const r = baseRows[i];
-      const item = normalizeCode(r[0]);
+      const row = baseRows[i];
+      const item = normalizeCode(row[0]);
       if (!item) continue;
       const inv = invMap.get(item) || {};
       const compra = compraMap.get(item) || {};
-      const valor = asNumber(r[2] ?? inv.valor ?? compra.valorCompra);
       list.push({
         ordem: list.length + 1,
         item,
         descricao: inv.descricao || '',
-        valor,
-        qtdBase: asNumber(r[1]),
-        qtdFisica: asNumber(r[1]),
+        valor: asNumber(row[2] ?? inv.valor ?? compra.valorCompra),
+        qtdBase: asNumber(row[1]),
+        qtdFisica: null,
+        qtdCompra: null,
         qtdMinima: asNumber(compra.qtdMinima),
       });
     }
-
     products = list;
+    sigaRows = [];
     sigaDiff = [];
+    pendingFocusIndex = null;
     renderAll();
   }
-
-  document.getElementById('excelFile').addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    const buffer = await file.arrayBuffer();
-    importWorkbook(buffer);
-  });
-
-  function updateQty(index, value) {
-    products[index].qtdFisica = asNumber(value);
-    renderMetrics();
-    renderReport();
+  function importQuantitiesFromReport(arrayBuffer) {
+    if (!products.length) return alert('Abra a planilha base antes de importar as quantidades.');
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const reportRows = sheetToObjects(workbook, 'INVENTARIO_FISICO');
+    const quantityMap = readQuantityReportSheet(reportRows.length ? reportRows : sheetToObjects(workbook, workbook.SheetNames[0]));
+    if (!quantityMap.size) return alert('Não encontrei as colunas Item e Qtd Física na planilha importada.');
+    let updated = 0;
+    products.forEach(product => {
+      if (!quantityMap.has(product.item)) return;
+      product.qtdFisica = quantityMap.get(product.item);
+      updated++;
+    });
+    if (sigaRows.length) rebuildSigaDiffFromRows();
+    renderAll();
+    alert(`${updated} quantidades importadas do relatório.`);
   }
 
+  document.getElementById('excelFile').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    importWorkbook(await file.arrayBuffer());
+  });
+
+  document.getElementById('quantityReportFile').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    importQuantitiesFromReport(await file.arrayBuffer());
+    event.target.value = '';
+  });
+
+  document.getElementById('backupFile').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    importBackup(await file.text());
+    event.target.value = '';
+  });
+
+  function getFinancials() {
+    const cashPhysical = asNumber(uiState.finance.cashPhysical);
+    const cashSiga = asNumber(uiState.finance.cashSiga);
+    const diff = cashPhysical - cashSiga;
+    return { cashPhysical, cashSiga, diff, replenish: Math.max(0, -diff), offering: Math.max(0, diff) };
+  }
+  function updateFinance(field, input) {
+    const amount = asCurrencyInputNumber(input?.value ?? input);
+    uiState.finance[field] = amount;
+    if (input?.value !== undefined) {
+      input.value = formatCurrencyInput(amount);
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+    renderMetrics();
+    renderReport();
+    updateFinanceSummary();
+  }
+  function syncFinanceInputs() {
+    const physicalInput = document.getElementById('cashPhysical');
+    const sigaInput = document.getElementById('cashSiga');
+    if (physicalInput) physicalInput.value = formatCurrencyInput(uiState.finance.cashPhysical);
+    if (sigaInput) sigaInput.value = formatCurrencyInput(uiState.finance.cashSiga);
+  }
+  function updateFinanceSummary() {
+    const financials = getFinancials();
+    const diffDisplay = document.getElementById('cashDiffDisplay');
+    const diffLabel = document.getElementById('cashDiffLabel');
+    if (diffDisplay) diffDisplay.textContent = money.format(financials.diff);
+    if (diffLabel) diffLabel.textContent = financials.diff > 0 ? 'Sobra considerada oferta/sobra de troco' : financials.diff < 0 ? 'Repor caixa' : 'Equilibrado';
+  }
+  function setEmptyToZero() {
+    products.forEach(product => { if (product.qtdFisica === null || product.qtdFisica === undefined || product.qtdFisica === '') product.qtdFisica = 0; });
+    renderAll();
+  }
+  function resetPhysicalFromBase() {
+    if (!confirm('Restaurar as quantidades físicas com os valores originais da aba BASE?')) return;
+    products.forEach(product => { product.qtdFisica = product.qtdBase; });
+    renderAll();
+  }
+  function updateQty(index, value, focusNextIndex) {
+    products[index].qtdFisica = asNullableNumber(value);
+    if (arguments.length >= 3) pendingFocusIndex = focusNextIndex;
+    renderAll();
+  }
+  function handleQtyKeydown(event, index) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const currentPosition = visibleInventoryIndexes.indexOf(index);
+    updateQty(index, event.currentTarget.value, currentPosition >= 0 ? visibleInventoryIndexes[currentPosition + 1] ?? null : null);
+  }
+  function isColumnVisible(tableKey, columnKey) { return Boolean(uiState.columns?.[tableKey]?.[columnKey]); }
+  function toggleColumn(tableKey, columnKey, checked) { uiState.columns[tableKey][columnKey] = checked; renderAll(); }
+  function toggleFilter(group, key, checked) { uiState.filters[group][key] = checked; renderAll(); }
+  function syncColumnVisibility() {
+    const sectionMap = { inventory: '#levantamento', buy: '#compra', siga: '#siga' };
+    Object.entries(TABLE_COLUMNS).forEach(([tableKey, columns]) => {
+      columns.forEach(columnKey => {
+        const visible = isColumnVisible(tableKey, columnKey);
+        document.querySelectorAll(`${sectionMap[tableKey]} [data-col="${columnKey}"]`).forEach(element => element.classList.toggle('col-hidden', !visible));
+      });
+    });
+  }
+  function renderColumnControls(tableKey, containerId) {
+    const labels = {
+      inventory: { index: '#', item: 'Item', descricao: 'Descrição', valor: 'Valor', qtdFisica: 'Qtd física', total: 'Total' },
+      buy: { item: 'Item', descricao: 'Descrição', qtdCompra: 'Qtd levantada', qtdFisica: 'Qtd física', qtdMinima: 'Qtd mínima', comprar: 'Comprar', valor: 'Valor', total: 'Total' },
+      siga: { item: 'Item', descricao: 'Descrição', qtdSiga: 'Qtd Siga', qtdFisica: 'Qtd física', diferenca: 'Diferença', baixar: 'Baixar', status: 'Status' },
+    };
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = TABLE_COLUMNS[tableKey].map(columnKey => `
+      <label class="column-toggle">
+        <input type="checkbox" ${isColumnVisible(tableKey, columnKey) ? 'checked' : ''} onchange="toggleColumn('${tableKey}', '${columnKey}', this.checked)" />
+        <span>${labels[tableKey][columnKey]}</span>
+      </label>
+    `).join('');
+  }
+  function renderFilterControls() {
+    const buyContainer = document.getElementById('buyFilters');
+    if (buyContainer) {
+      buyContainer.innerHTML = `
+        <label class="chip"><input type="checkbox" ${uiState.filters.buy.comprar ? 'checked' : ''} onchange="toggleFilter('buy', 'comprar', this.checked)" /><span>Mostrar itens para comprar</span></label>
+        <label class="chip"><input type="checkbox" ${uiState.filters.buy.semCompra ? 'checked' : ''} onchange="toggleFilter('buy', 'semCompra', this.checked)" /><span>Mostrar itens sem compra</span></label>
+      `;
+    }
+    const sigaContainer = document.getElementById('sigaFilters');
+    if (sigaContainer) {
+      sigaContainer.innerHTML = `
+        <label class="chip"><input type="checkbox" ${uiState.filters.siga.baixar ? 'checked' : ''} onchange="toggleFilter('siga', 'baixar', this.checked)" /><span>Baixar</span></label>
+        <label class="chip"><input type="checkbox" ${uiState.filters.siga.divergencia ? 'checked' : ''} onchange="toggleFilter('siga', 'divergencia', this.checked)" /><span>Divergência</span></label>
+        <label class="chip"><input type="checkbox" ${uiState.filters.siga.ok ? 'checked' : ''} onchange="toggleFilter('siga', 'ok', this.checked)" /><span>OK</span></label>
+        <label class="chip"><input type="checkbox" ${uiState.filters.siga.naoEncontrado ? 'checked' : ''} onchange="toggleFilter('siga', 'naoEncontrado', this.checked)" /><span>Não encontrado</span></label>
+      `;
+    }
+  }
   function renderInventory() {
     const body = document.getElementById('inventoryBody');
     const search = normalizeCode(document.getElementById('searchInventory').value);
     body.innerHTML = '';
-    products
-      .filter(p => !search || p.item.includes(search) || normalizeCode(p.descricao).includes(search))
-      .forEach((p, visibleIndex) => {
-        const index = products.indexOf(p);
-        const total = p.qtdFisica * p.valor;
-        body.insertAdjacentHTML('beforeend', `
-          <tr>
-            <td>${visibleIndex + 1}</td>
-            <td><b>${p.item}</b></td>
-            <td>${escapeHtml(p.descricao)}</td>
-            <td>${money.format(p.valor)}</td>
-            <td><input type="number" min="0" step="1" value="${p.qtdFisica}" onchange="updateQty(${index}, this.value)"></td>
-            <td>${money.format(total)}</td>
-          </tr>`);
+    const filtered = products.filter(product => !search || product.item.includes(search) || normalizeCode(product.descricao).includes(search));
+    visibleInventoryIndexes = filtered.map(product => products.indexOf(product));
+    filtered.forEach((product, visibleIndex) => {
+      const index = products.indexOf(product);
+      body.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td data-col="index">${visibleIndex + 1}</td>
+          <td data-col="item"><b>${product.item}</b></td>
+          <td data-col="descricao">${escapeHtml(product.descricao)}</td>
+          <td data-col="valor">${money.format(product.valor)}</td>
+          <td data-col="qtdFisica"><input class="qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdFisica ?? ''}" onchange="updateQty(${index}, this.value)" onkeydown="handleQtyKeydown(event, ${index})"></td>
+          <td data-col="total">${money.format(asNumber(product.qtdFisica) * product.valor)}</td>
+        </tr>`);
+    });
+    if (pendingFocusIndex !== null) {
+      const nextIndex = pendingFocusIndex;
+      pendingFocusIndex = null;
+      requestAnimationFrame(() => {
+        const nextInput = body.querySelector(`input.qty-input[data-product-index="${nextIndex}"]`);
+        if (nextInput) { nextInput.focus(); nextInput.select(); }
       });
+    }
   }
-
   function getBuyList() {
-    return products.map(p => {
-      const comprar = Math.max(0, asNumber(p.qtdMinima) - asNumber(p.qtdFisica));
-      return { ...p, comprar, totalCompra: comprar * p.valor };
+    return products.map(product => {
+      const qtdCompra = product.qtdCompra === null || product.qtdCompra === undefined || product.qtdCompra === '' ? null : asNumber(product.qtdCompra);
+      const qtdReferencia = qtdCompra ?? asNumber(product.qtdFisica);
+      const comprar = Math.max(0, asNumber(product.qtdMinima) - qtdReferencia);
+      return { ...product, qtdCompra, qtdReferencia, comprar, totalCompra: comprar * product.valor };
     });
   }
-
+  function updateBuyQty(index, value, focusNextIndex) {
+    products[index].qtdCompra = asNullableNumber(value);
+    if (arguments.length >= 3) pendingBuyFocusIndex = focusNextIndex;
+    renderBuyList();
+    renderMetrics();
+    renderReport();
+    syncColumnVisibility();
+  }
+  function handleBuyQtyKeydown(event, index) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const currentPosition = visibleBuyIndexes.indexOf(index);
+    updateBuyQty(index, event.currentTarget.value, currentPosition >= 0 ? visibleBuyIndexes[currentPosition + 1] ?? null : null);
+  }
+  function clearBuySurvey() {
+    if (!confirm('Zerar o levantamento da lista de compra?')) return;
+    products.forEach(product => { product.qtdCompra = null; });
+    renderAll();
+  }
+  function copyInventoryToBuySurvey() {
+    products.forEach(product => { product.qtdCompra = asNumber(product.qtdFisica); });
+    renderAll();
+  }
   function renderBuyList() {
     const body = document.getElementById('buyBody');
     const search = normalizeCode(document.getElementById('searchBuy').value);
-    const filter = document.getElementById('buyFilter').value;
     body.innerHTML = '';
-    getBuyList()
-      .filter(p => filter === 'all' || p.comprar > 0)
-      .filter(p => !search || p.item.includes(search) || normalizeCode(p.descricao).includes(search))
-      .forEach(p => {
+    const showComprar = uiState.filters.buy.comprar;
+    const showSemCompra = uiState.filters.buy.semCompra;
+    const filtered = getBuyList()
+      .filter(product => (showComprar && product.comprar > 0) || (showSemCompra && product.comprar <= 0))
+      .filter(product => !search || product.item.includes(search) || normalizeCode(product.descricao).includes(search));
+    visibleBuyIndexes = filtered.map(product => products.findIndex(item => item.item === product.item));
+    filtered.forEach(product => {
+        const index = products.findIndex(item => item.item === product.item);
         body.insertAdjacentHTML('beforeend', `
           <tr>
-            <td><b>${p.item}</b></td>
-            <td>${escapeHtml(p.descricao)}</td>
-            <td>${p.qtdFisica}</td>
-            <td>${p.qtdMinima}</td>
-            <td class="${p.comprar > 0 ? 'bad' : 'ok'}">${p.comprar}</td>
-            <td>${money.format(p.valor)}</td>
-            <td>${money.format(p.totalCompra)}</td>
+            <td data-col="item"><b>${product.item}</b></td>
+            <td data-col="descricao">${escapeHtml(product.descricao)}</td>
+            <td data-col="qtdCompra"><input class="qty-input buy-qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdCompra ?? ''}" onchange="updateBuyQty(${index}, this.value)" onkeydown="handleBuyQtyKeydown(event, ${index})"></td>
+            <td data-col="qtdFisica">${asNumber(product.qtdFisica)}</td>
+            <td data-col="qtdMinima">${product.qtdMinima}</td>
+            <td data-col="comprar" class="${product.comprar > 0 ? 'bad' : 'ok'}">${product.comprar}</td>
+            <td data-col="valor">${money.format(product.valor)}</td>
+            <td data-col="total">${money.format(product.totalCompra)}</td>
           </tr>`);
       });
+    if (pendingBuyFocusIndex !== null) {
+      const nextIndex = pendingBuyFocusIndex;
+      pendingBuyFocusIndex = null;
+      requestAnimationFrame(() => {
+        const nextInput = body.querySelector(`input.buy-qty-input[data-product-index="${nextIndex}"]`);
+        if (nextInput) { nextInput.focus(); nextInput.select(); }
+      });
+    }
   }
-
   function compareSiga() {
     const raw = document.getElementById('sigaJson').value.trim();
-    if (!raw) {
-      alert('Cole o JSON do Siga primeiro.');
-      return;
-    }
+    if (!raw) return alert('Cole o JSON do Siga primeiro.');
     let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      alert('JSON inválido. Confira se copiou o conteúdo completo.');
-      return;
-    }
-
+    try { parsed = JSON.parse(raw); } catch { return alert('JSON inválido. Confira se copiou o conteúdo completo.'); }
     const items = parsed?.d?.items || parsed?.items || [];
-    const productMap = new Map(products.map(p => [p.item, p]));
     sigaRows = items
-      .filter(x => x && !x.disabled && x.detail)
-      .map(x => ({
-        idSiga: x.id,
-        item: normalizeCode(x.detail.CodigoAuxiliar || x.detail.Codigo),
-        descricaoSiga: String(x.text || x.detail.Descricao || '').trim(),
-        qtdSiga: asNumber(x.detail.SaldoLocal ?? x.detail.Estoque),
-        unidade: x.detail.UnidadeMedida || ''
+      .filter(item => item && !item.disabled && item.detail)
+      .map(item => ({
+        idSiga: item.id,
+        item: normalizeCode(item.detail.CodigoAuxiliar || item.detail.Codigo),
+        descricaoSiga: String(item.text || item.detail.Descricao || '').trim(),
+        qtdSiga: asNumber(item.detail.SaldoLocal ?? item.detail.Estoque),
+        unidade: item.detail.UnidadeMedida || '',
       }))
-      .filter(x => x.item);
-
-    sigaDiff = sigaRows.map(s => {
-      const p = productMap.get(s.item);
-      const qtdFisica = p ? asNumber(p.qtdFisica) : 0;
-      const diff = s.qtdSiga - qtdFisica;
-      return {
-        item: s.item,
-        descricao: p?.descricao || s.descricaoSiga,
-        qtdSiga: s.qtdSiga,
-        qtdFisica,
-        diff,
-        baixar: Math.max(0, diff),
-        status: !p ? 'Não encontrado na planilha' : diff > 0 ? 'Baixar no Siga' : diff < 0 ? 'Físico maior que Siga' : 'OK'
-      };
-    });
-
+      .filter(item => item.item);
+    rebuildSigaDiffFromRows();
+    saveSigaJsonToHistory(raw, sigaRows.length, true);
     document.getElementById('sigaStatus').textContent = `JSON lido com ${sigaRows.length} itens válidos do Siga.`;
     renderAll();
     showTab('siga');
   }
-
+  function statusLabel(status) {
+    if (status === 'baixar') return 'Baixar no Siga';
+    if (status === 'divergencia') return 'Físico maior que Siga';
+    if (status === 'ok') return 'OK';
+    return 'Não encontrado na planilha';
+  }
   function renderSigaDiff() {
     const body = document.getElementById('sigaBody');
     const search = normalizeCode(document.getElementById('searchSiga').value);
-    const filter = document.getElementById('sigaFilter').value;
     body.innerHTML = '';
     sigaDiff
-      .filter(r => {
-        if (filter === 'baixar') return r.baixar > 0;
-        if (filter === 'divergencias') return r.diff !== 0;
-        return true;
-      })
-      .filter(r => !search || r.item.includes(search) || normalizeCode(r.descricao).includes(search))
-      .forEach(r => {
-        const cls = r.baixar > 0 ? 'bad' : r.diff < 0 ? 'warn' : 'ok';
+      .filter(item => uiState.filters.siga[item.status])
+      .filter(item => !search || item.item.includes(search) || normalizeCode(item.descricao).includes(search))
+      .forEach(item => {
+        const cls = item.status === 'baixar' ? 'bad' : item.status === 'divergencia' ? 'warn' : 'ok';
         body.insertAdjacentHTML('beforeend', `
           <tr>
-            <td><b>${r.item}</b></td>
-            <td>${escapeHtml(r.descricao)}</td>
-            <td>${r.qtdSiga}</td>
-            <td>${r.qtdFisica}</td>
-            <td class="${cls}">${r.diff}</td>
-            <td class="${r.baixar > 0 ? 'bad' : 'ok'}">${r.baixar}</td>
-            <td><span class="pill">${r.status}</span></td>
+            <td data-col="item"><b>${item.item}</b></td>
+            <td data-col="descricao">${escapeHtml(item.descricao)}</td>
+            <td data-col="qtdSiga">${item.qtdSiga}</td>
+            <td data-col="qtdFisica">${item.qtdFisica}</td>
+            <td data-col="diferenca" class="${cls}">${item.diff}</td>
+            <td data-col="baixar" class="${item.baixar > 0 ? 'bad' : 'ok'}">${item.baixar}</td>
+            <td data-col="status"><span class="pill">${statusLabel(item.status)}</span></td>
           </tr>`);
       });
   }
-
   function renderMetrics() {
-    const buy = getBuyList().filter(x => x.comprar > 0);
-    const baixar = sigaDiff.filter(x => x.baixar > 0);
-    const valor = products.reduce((sum, p) => sum + (p.qtdFisica * p.valor), 0);
+    const buy = getBuyList().filter(item => item.comprar > 0);
+    const baixar = sigaDiff.filter(item => item.baixar > 0);
+    const valor = products.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
+    const financials = getFinancials();
+    const fundCurrent = valor + financials.cashPhysical;
     document.getElementById('metricItems').textContent = products.length;
     document.getElementById('metricComprar').textContent = buy.length;
     document.getElementById('metricBaixar').textContent = baixar.length;
     document.getElementById('metricValor').textContent = money.format(valor);
+    document.getElementById('metricCashPhysical').textContent = money.format(financials.cashPhysical);
+    document.getElementById('metricCashSiga').textContent = money.format(financials.cashSiga);
+    document.getElementById('metricCashDiff').textContent = money.format(financials.diff);
+    document.getElementById('metricFundCurrent').textContent = money.format(fundCurrent);
+    updateFinanceSummary();
   }
-
+  function buildClosingRows() {
+    const financials = getFinancials();
+    const valorEstoque = products.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
+    const fundCurrent = valorEstoque + financials.cashPhysical;
+    return [
+      { Descrição: 'TOTAL ITENS NO ESTOQUE (+)', Valor: products.length },
+      { Descrição: 'TOTAL DO ESTOQUE (+)', Valor: valorEstoque },
+      { Descrição: 'TOTAL DO CAIXA (+)', Valor: financials.cashPhysical },
+      { Descrição: 'TOTAL DO FUNDO BÍBLICO ATUAL (=)', Valor: fundCurrent },
+      { Descrição: 'DINHEIRO CONTABILIZADO NO SIGA', Valor: financials.cashSiga },
+      { Descrição: 'DIFERENÇA CAIXA X SIGA', Valor: financials.diff },
+      { Descrição: 'AUMENTO NO MÊS (OFERTAS/SOBRA DE TROCO)', Valor: financials.offering },
+      { Descrição: 'REPOSIÇÃO NECESSÁRIA', Valor: financials.replenish },
+    ];
+  }
   function renderReport() {
-    const buy = getBuyList().filter(x => x.comprar > 0);
-    const baixa = sigaDiff.filter(x => x.baixar > 0);
-    const valorFisico = products.reduce((sum, p) => sum + (p.qtdFisica * p.valor), 0);
-    const valorCompra = buy.reduce((sum, p) => sum + p.totalCompra, 0);
+    const buy = getBuyList().filter(item => item.comprar > 0);
+    const baixa = sigaDiff.filter(item => item.baixar > 0);
+    const valorFisico = products.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
+    const valorCompra = buy.reduce((sum, item) => sum + item.totalCompra, 0);
+    const financials = getFinancials();
+    const fundCurrent = valorFisico + financials.cashPhysical;
     document.getElementById('reportBox').innerHTML = `
-      <h3>Resumo do inventário</h3>
+      <h3>Resumo do inventário e fechamento</h3>
       <p><b>Data:</b> ${new Date().toLocaleString('pt-BR')}</p>
       <p><b>Total de itens contados:</b> ${products.length}</p>
       <p><b>Valor total do estoque físico:</b> ${money.format(valorFisico)}</p>
       <p><b>Itens para compra:</b> ${buy.length} | <b>Valor estimado:</b> ${money.format(valorCompra)}</p>
       <p><b>Itens para baixa no Siga:</b> ${baixa.length}</p>
+      <p><b>Caixa físico:</b> ${money.format(financials.cashPhysical)} | <b>Caixa Siga:</b> ${money.format(financials.cashSiga)} | <b>Diferença:</b> ${money.format(financials.diff)}</p>
+      <p><b>Fundo bíblico atual:</b> ${money.format(fundCurrent)}</p>
+      <p><b>Aumento no mês:</b> ${money.format(financials.offering)} | <b>Reposição necessária:</b> ${money.format(financials.replenish)}</p>
     `;
   }
-
+  function renderSigaHistory() {
+    const container = document.getElementById('sigaHistory');
+    if (!container) return;
+    if (!uiState.sigaHistory.length) {
+      container.innerHTML = '<p class="muted small">Nenhum JSON salvo no histórico.</p>';
+      return;
+    }
+    container.innerHTML = uiState.sigaHistory.map(entry => `
+      <div class="history-item">
+        <div>
+          <strong>${new Date(entry.savedAt).toLocaleString('pt-BR')}</strong>
+          <div class="muted small">${entry.itemCount} itens | ${entry.label || 'JSON do Siga'}</div>
+        </div>
+        <div class="toolbar" style="margin:0">
+          <button class="secondary" onclick="loadSigaHistoryEntry('${entry.id}')">Carregar</button>
+          <button onclick="compareSigaHistoryEntry('${entry.id}')">Comparar</button>
+          <button class="danger" onclick="removeSigaHistoryEntry('${entry.id}')">Excluir</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  function createBuyHistoryEntry(label = '') {
+    const rows = getBuyList().filter(item => item.comprar > 0);
+    const total = rows.reduce((sum, item) => sum + item.totalCompra, 0);
+    return {
+      id: `buy-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      label: label || `Lista de compra ${new Date().toLocaleDateString('pt-BR')}`,
+      savedAt: new Date().toISOString(),
+      itemCount: rows.length,
+      total,
+      quantities: products.map(product => ({ item: product.item, qtdCompra: product.qtdCompra ?? null })),
+      rows: rows.map(item => ({
+        item: item.item,
+        descricao: item.descricao,
+        qtdLevantada: item.qtdReferencia,
+        qtdMinima: item.qtdMinima,
+        comprar: item.comprar,
+        valor: item.valor,
+        total: item.totalCompra,
+      })),
+    };
+  }
+  function saveBuyListHistory() {
+    const label = prompt('Nome para salvar esta lista de compra:', `Lista de compra ${new Date().toLocaleDateString('pt-BR')}`);
+    if (label === null) return;
+    const entry = createBuyHistoryEntry(label.trim());
+    uiState.buyHistory = [entry, ...(uiState.buyHistory || [])].slice(0, 30);
+    saveStateToLocal();
+    renderBuyHistory();
+    alert(`${entry.label} salva com ${entry.itemCount} itens.`);
+  }
+  function restoreBuyHistory(id) {
+    const entry = (uiState.buyHistory || []).find(item => item.id === id);
+    if (!entry) return;
+    if (!confirm(`Restaurar o levantamento "${entry.label}"?`)) return;
+    const quantityMap = new Map((entry.quantities || []).map(item => [item.item, item.qtdCompra]));
+    products.forEach(product => {
+      if (quantityMap.has(product.item)) product.qtdCompra = quantityMap.get(product.item);
+    });
+    saveStateToLocal();
+    renderAll();
+    showTab('compra');
+  }
+  function removeBuyHistory(id) {
+    const entry = (uiState.buyHistory || []).find(item => item.id === id);
+    if (!entry) return;
+    if (!confirm(`Excluir "${entry.label}" do histórico?`)) return;
+    uiState.buyHistory = uiState.buyHistory.filter(item => item.id !== id);
+    saveStateToLocal();
+    renderBuyHistory();
+  }
+  function renderBuyHistory() {
+    const container = document.getElementById('buyHistory');
+    if (!container) return;
+    const history = uiState.buyHistory || [];
+    if (!history.length) {
+      container.innerHTML = '<p class="muted small">Nenhuma lista de compra salva.</p>';
+      return;
+    }
+    container.innerHTML = history.map(entry => `
+      <div class="history-item">
+        <div>
+          <strong>${escapeHtml(entry.label)}</strong>
+          <div class="muted small">${new Date(entry.savedAt).toLocaleString('pt-BR')} | ${entry.itemCount} itens | ${money.format(entry.total || 0)}</div>
+        </div>
+        <div class="toolbar" style="margin:0">
+          <button onclick="restoreBuyHistory('${entry.id}')">Restaurar levantamento</button>
+          <button class="danger" onclick="removeBuyHistory('${entry.id}')">Excluir</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  function closingLabelFromInput(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    const month = text.match(/^\d{1,2}$/) ? text.padStart(2, '0') : '';
+    return month ? `Fechamento mês ${month}` : text;
+  }
+  function createClosingEntry(label) {
+    return {
+      id: `closing-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      label,
+      savedAt: new Date().toISOString(),
+      totals: buildClosingRows(),
+      snapshot: getSystemSnapshot(false),
+    };
+  }
+  function finishClosing() {
+    const defaultMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const label = closingLabelFromInput(prompt('Informe o mês ou nome do fechamento:', defaultMonth));
+    if (!label) return;
+    uiState.closings = [createClosingEntry(label), ...(uiState.closings || [])];
+    saveStateToLocal();
+    renderAll();
+    showTab('fechamentos');
+    alert(`${label} salvo com sucesso.`);
+  }
+  function startNewClosing() {
+    if (!products.length) return alert('Abra uma planilha antes de iniciar um novo fechamento.');
+    if (!confirm('Iniciar novo fechamento? As quantidades físicas, caixa e comparação atual serão zerados.')) return;
+    products.forEach(product => {
+      product.qtdFisica = 0;
+      product.qtdCompra = null;
+    });
+    sigaRows = [];
+    sigaDiff = [];
+    pendingFocusIndex = null;
+    uiState.finance = { cashPhysical: 0, cashSiga: 0 };
+    document.getElementById('sigaJson').value = '';
+    saveStateToLocal();
+    renderAll();
+    showTab('levantamento');
+  }
+  function restoreClosing(id) {
+    const closing = (uiState.closings || []).find(item => item.id === id);
+    if (!closing?.snapshot) return;
+    if (!confirm(`Restaurar ${closing.label}? O estado atual será substituído.`)) return;
+    restoreSystemSnapshot(closing.snapshot, { preserveClosings: true });
+    saveStateToLocal();
+    renderAll();
+    showTab('relatorio');
+  }
+  function removeClosing(id) {
+    const closing = (uiState.closings || []).find(item => item.id === id);
+    if (!closing) return;
+    if (!confirm(`Excluir ${closing.label}?`)) return;
+    uiState.closings = uiState.closings.filter(item => item.id !== id);
+    saveStateToLocal();
+    renderClosings();
+  }
+  function renderClosings() {
+    const container = document.getElementById('closingList');
+    if (!container) return;
+    const closings = uiState.closings || [];
+    if (!closings.length) {
+      container.innerHTML = '<p class="muted small">Nenhum fechamento salvo.</p>';
+      return;
+    }
+    container.innerHTML = closings.map(closing => {
+      const totalFund = closing.totals?.find(row => row.Descrição === 'TOTAL DO FUNDO BÍBLICO ATUAL (=)')?.Valor ?? 0;
+      const cashDiff = closing.totals?.find(row => row.Descrição === 'DIFERENÇA CAIXA X SIGA')?.Valor ?? 0;
+      return `
+        <div class="history-item">
+          <div>
+            <strong>${escapeHtml(closing.label)}</strong>
+            <div class="muted small">${new Date(closing.savedAt).toLocaleString('pt-BR')} | Fundo: ${money.format(totalFund)} | Diferença caixa: ${money.format(cashDiff)}</div>
+          </div>
+          <div class="toolbar" style="margin:0">
+            <button onclick="restoreClosing('${closing.id}')">Restaurar</button>
+            <button class="danger" onclick="removeClosing('${closing.id}')">Excluir</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  function createHistoryEntry(raw, itemCount) {
+    return { id: `json-${Date.now()}-${Math.random().toString(16).slice(2)}`, savedAt: new Date().toISOString(), itemCount, raw, label: 'JSON exportado do Siga' };
+  }
+  function saveSigaJsonToHistory(rawOverride = null, itemCountOverride = null, silent = false) {
+    const raw = (rawOverride ?? document.getElementById('sigaJson').value).trim();
+    if (!raw) { if (!silent) alert('Cole um JSON válido antes de salvar no histórico.'); return; }
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { if (!silent) alert('JSON inválido. Confira o conteúdo antes de salvar.'); return; }
+    const itemCount = itemCountOverride ?? ((parsed?.d?.items || parsed?.items || []).length);
+    const lastEntry = uiState.sigaHistory[0];
+    if (lastEntry && lastEntry.raw === raw) {
+      if (!silent) document.getElementById('sigaStatus').textContent = 'Este JSON já está salvo no histórico.';
+      renderSigaHistory();
+      return;
+    }
+    uiState.sigaHistory = [createHistoryEntry(raw, itemCount), ...uiState.sigaHistory].slice(0, 20);
+    renderSigaHistory();
+    if (!silent) document.getElementById('sigaStatus').textContent = `JSON salvo no histórico com ${itemCount} itens.`;
+  }
+  function loadSigaHistoryEntry(id) {
+    const entry = uiState.sigaHistory.find(item => item.id === id);
+    if (!entry) return;
+    document.getElementById('sigaJson').value = entry.raw;
+    document.getElementById('sigaStatus').textContent = `JSON de ${new Date(entry.savedAt).toLocaleString('pt-BR')} carregado no editor.`;
+  }
+  function compareSigaHistoryEntry(id) {
+    const entry = uiState.sigaHistory.find(item => item.id === id);
+    if (!entry) return;
+    document.getElementById('sigaJson').value = entry.raw;
+    compareSiga();
+  }
+  function removeSigaHistoryEntry(id) {
+    uiState.sigaHistory = uiState.sigaHistory.filter(item => item.id !== id);
+    renderAll();
+  }
   function renderAll() {
+    renderColumnControls('inventory', 'inventoryControls');
+    renderColumnControls('buy', 'buyControls');
+    renderColumnControls('siga', 'sigaControls');
+    renderFilterControls();
+    syncFinanceInputs();
     renderInventory();
     renderBuyList();
     renderSigaDiff();
+    syncColumnVisibility();
     renderMetrics();
     renderReport();
+    renderSigaHistory();
+    renderBuyHistory();
+    renderClosings();
+    updateFinanceSummary();
   }
-
   function showTab(id) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+    document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === id));
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab.dataset.tab === id));
     renderAll();
   }
-
-  function setEmptyToZero() {
-    products.forEach(p => { if (p.qtdFisica === null || p.qtdFisica === undefined || p.qtdFisica === '') p.qtdFisica = 0; });
-    renderAll();
-  }
-
-  function resetPhysicalFromBase() {
-    if (!confirm('Restaurar as quantidades físicas com os valores originais da aba BASE?')) return;
-    products.forEach(p => p.qtdFisica = p.qtdBase);
-    renderAll();
-  }
-
   function saveLocal() {
-    localStorage.setItem('mvpInventarioSiga', JSON.stringify({ products, sigaJson: document.getElementById('sigaJson').value, sigaDiff }));
+    saveStateToLocal();
     alert('Dados salvos neste navegador.');
   }
-
+  function getBackupPayload() {
+    return {
+      backupVersion: 1,
+      exportedAt: new Date().toISOString(),
+      ...getSystemSnapshot(true),
+    };
+  }
+  function exportBackup() {
+    const blob = new Blob([JSON.stringify(getBackupPayload(), null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `backup-mvp-inventario-siga-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+  function importBackup(raw) {
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      alert('Backup JSON inválido.');
+      return;
+    }
+    if (!data || typeof data !== 'object') {
+      alert('Backup inválido.');
+      return;
+    }
+    restoreSystemSnapshot(data);
+    saveStateToLocal();
+    renderAll();
+    alert('Backup carregado com sucesso.');
+  }
   function loadLocal() {
-    const saved = localStorage.getItem('mvpInventarioSiga');
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return alert('Nenhum dado salvo encontrado.');
-    const data = JSON.parse(saved);
-    products = data.products || [];
-    sigaDiff = data.sigaDiff || [];
-    document.getElementById('sigaJson').value = data.sigaJson || '';
+    restoreSystemSnapshot(JSON.parse(saved));
     renderAll();
   }
-
   function clearAll() {
     if (!confirm('Limpar todos os dados carregados?')) return;
     products = [];
     sigaRows = [];
     sigaDiff = [];
+    uiState = defaultUiState();
     document.getElementById('sigaJson').value = '';
     renderAll();
   }
-
-  function rowsToSheet(rows) {
-    return XLSX.utils.json_to_sheet(rows);
+  function rowsToSheet(rows) { return XLSX.utils.json_to_sheet(rows); }
+  function getBuyExportRows() {
+    return getBuyList().filter(product => product.comprar > 0).map(product => ({
+      item: product.item,
+      descricao: product.descricao,
+      qtdCompra: product.qtdReferencia,
+      qtdFisica: asNumber(product.qtdFisica),
+      qtdMinima: product.qtdMinima,
+      comprar: product.comprar,
+      valor: product.valor,
+      total: product.totalCompra,
+    }));
   }
-
+  function buyRowsForExport() {
+    return getBuyExportRows().map(product => ({ Item: product.item, Descrição: product.descricao, 'Qtd Levantada': product.qtdCompra, 'Qtd Física': product.qtdFisica, 'Qtd Mínima': product.qtdMinima, Comprar: product.comprar, Valor: product.valor, Total: product.total }));
+  }
+  function formatBuyCopyValue(columnKey, row) {
+    if (columnKey === 'item') return row.item;
+    if (columnKey === 'descricao') return row.descricao;
+    if (columnKey === 'qtdCompra') return row.qtdCompra;
+    if (columnKey === 'qtdFisica') return row.qtdFisica;
+    if (columnKey === 'qtdMinima') return row.qtdMinima;
+    if (columnKey === 'comprar') return row.comprar;
+    if (columnKey === 'valor') return money.format(row.valor);
+    if (columnKey === 'total') return money.format(row.total);
+    return '';
+  }
+  function copyToClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy') ? resolve() : reject(new Error('copy failed'));
+      } catch (error) {
+        reject(error);
+      } finally {
+        textarea.remove();
+      }
+    });
+  }
+  async function copyBuyListText() {
+    const rows = getBuyExportRows();
+    if (!rows.length) return alert('Não há itens para comprar.');
+    const labels = { item: 'Item', descricao: 'Descrição', qtdCompra: 'Qtd levantada', qtdFisica: 'Qtd física', qtdMinima: 'Qtd mínima', comprar: 'Comprar', valor: 'Valor', total: 'Total' };
+    const visibleColumns = TABLE_COLUMNS.buy.filter(columnKey => isColumnVisible('buy', columnKey));
+    const header = [
+      'A paz de Deus irmãos!',
+      'Segue o pedido do fundo bíblico de Guariba!',
+      'Casa de oração: ',
+      'BR 22-2657 - Jardim Hortência',
+      '',
+      'Pagamento via Depósito',
+      '',
+    ];
+    const columnHeader = visibleColumns.map(columnKey => labels[columnKey]).join(' ----- ');
+    const list = rows.map(row => visibleColumns.map(columnKey => formatBuyCopyValue(columnKey, row)).join(' ----- '));
+    const text = [...header, columnHeader, ...list].join('\n');
+    try {
+      await copyToClipboard(text);
+      alert('Pedido copiado para a área de transferência.');
+    } catch {
+      prompt('Não consegui copiar automaticamente. Copie o texto abaixo:', text);
+    }
+  }
   function exportWorkbook() {
     if (!window.XLSX) return alert('Biblioteca XLSX não carregou. Verifique a internet.');
     const wb = XLSX.utils.book_new();
-    const inventario = products.map(p => ({
-      Item: p.item,
-      Descrição: p.descricao,
-      Valor: p.valor,
-      'Qtd Física': p.qtdFisica,
-      Total: p.qtdFisica * p.valor
-    }));
-    const compra = getBuyList().filter(p => p.comprar > 0).map(p => ({
-      Item: p.item,
-      Descrição: p.descricao,
-      'Qtd Física': p.qtdFisica,
-      'Qtd Mínima': p.qtdMinima,
-      Comprar: p.comprar,
-      Valor: p.valor,
-      Total: p.totalCompra
-    }));
-    const baixa = sigaDiff.filter(r => r.baixar > 0).map(r => ({
-      Item: r.item,
-      Descrição: r.descricao,
-      'Qtd Siga': r.qtdSiga,
-      'Qtd Física': r.qtdFisica,
-      Diferença: r.diff,
-      Baixar: r.baixar,
-      Status: r.status
-    }));
+    const inventario = products.map(product => ({ Item: product.item, Descrição: product.descricao, Valor: product.valor, 'Qtd Física': asNumber(product.qtdFisica), Total: asNumber(product.qtdFisica) * product.valor }));
+    const compra = buyRowsForExport();
+    const baixa = sigaDiff.filter(item => item.baixar > 0).map(item => ({ Item: item.item, Descrição: item.descricao, 'Qtd Siga': item.qtdSiga, 'Qtd Física': item.qtdFisica, Diferença: item.diff, Baixar: item.baixar, Status: statusLabel(item.status) }));
     XLSX.utils.book_append_sheet(wb, rowsToSheet(inventario), 'INVENTARIO_FISICO');
     XLSX.utils.book_append_sheet(wb, rowsToSheet(compra), 'COMPRA');
     XLSX.utils.book_append_sheet(wb, rowsToSheet(baixa), 'BAIXA_SIGA');
-    XLSX.writeFile(wb, `inventario-siga-${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(buildClosingRows()), 'FECHAMENTO');
+    XLSX.writeFile(wb, `inventario-siga-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
-
   function toCsv(rows) {
     if (!rows.length) return '';
     const headers = Object.keys(rows[0]);
-    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    return [headers.join(';'), ...rows.map(r => headers.map(h => esc(r[h])).join(';'))].join('\n');
+    const esc = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    return [headers.join(';'), ...rows.map(row => headers.map(header => esc(row[header])).join(';'))].join('\n');
   }
-
   function downloadCsv(type) {
     let rows = [];
     let name = 'dados.csv';
     if (type === 'compra') {
-      rows = getBuyList().filter(p => p.comprar > 0).map(p => ({ Item: p.item, Descricao: p.descricao, QtdFisica: p.qtdFisica, QtdMinima: p.qtdMinima, Comprar: p.comprar, Valor: p.valor, Total: p.totalCompra }));
+      rows = getBuyExportRows().map(product => ({ Item: product.item, Descricao: product.descricao, QtdLevantada: product.qtdCompra, QtdFisica: product.qtdFisica, QtdMinima: product.qtdMinima, Comprar: product.comprar, Valor: product.valor, Total: product.total }));
       name = 'lista-compra.csv';
     }
     if (type === 'baixa') {
-      rows = sigaDiff.filter(r => r.baixar > 0).map(r => ({ Item: r.item, Descricao: r.descricao, QtdSiga: r.qtdSiga, QtdFisica: r.qtdFisica, Baixar: r.baixar, Status: r.status }));
+      rows = sigaDiff.filter(item => item.baixar > 0).map(item => ({ Item: item.item, Descricao: item.descricao, QtdSiga: item.qtdSiga, QtdFisica: item.qtdFisica, Baixar: item.baixar, Status: statusLabel(item.status) }));
       name = 'baixa-siga.csv';
     }
     if (!rows.length) return alert('Não há dados para exportar.');
     const blob = new Blob(['\ufeff' + toCsv(rows)], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = name;
+    anchor.click();
     URL.revokeObjectURL(url);
   }
-
-  function escapeHtml(text) {
-    return String(text ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  }
+  function escapeHtml(text) { return String(text ?? '').replace(/[&<>\"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character])); }
 
   renderAll();
 </script>
