@@ -307,6 +307,20 @@
       margin-bottom: 4px;
     }
 
+    .edit-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .edit-cell .edit-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+
     .row-disabled { opacity: 0.6; text-decoration: line-through; }
 
     .col-hidden { display: none !important; }
@@ -885,10 +899,10 @@
         body.insertAdjacentHTML('beforeend', `
         <tr class="${rowClass}">
           <td data-col="index">${visibleIndex + 1}</td>
-          <td data-col="item"><input id="edit_item_${index}" type="text" value="${escapeHtml(buf.item)}"></td>
-          <td data-col="descricao"><input id="edit_descricao_${index}" type="text" value="${escapeHtml(buf.descricao)}"></td>
-          <td data-col="valor"><input id="edit_valor_${index}" type="number" step="0.01" value="${buf.valor ?? 0}"></td>
-          <td data-col="qtdFisica"><input class="qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdFisica ?? ''}" onchange="updateQty(${index}, this.value)" onkeydown="handleQtyKeydown(event, ${index})"></td>
+          <td data-col="item"><div class="edit-cell"><span class="edit-label">Item</span><input id="edit_item_${index}" type="text" value="${escapeHtml(buf.item)}"></div></td>
+          <td data-col="descricao"><div class="edit-cell"><span class="edit-label">Descrição</span><input id="edit_descricao_${index}" type="text" value="${escapeHtml(buf.descricao)}"></div></td>
+          <td data-col="valor"><div class="edit-cell"><span class="edit-label">Valor</span><input id="edit_valor_${index}" type="number" step="0.01" value="${buf.valor ?? 0}"></div></td>
+          <td data-col="qtdFisica"><div class="edit-cell"><span class="edit-label">Qtd física</span><input class="qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdFisica ?? ''}" onchange="updateQty(${index}, this.value)" onkeydown="handleQtyKeydown(event, ${index})"></div></td>
           <td data-col="total">${money.format(asNumber(product.qtdFisica) * product.valor)}</td>
           <td data-col="acoes">
             <button onclick="saveEdit(${index})">Salvar</button>
