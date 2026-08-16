@@ -307,6 +307,8 @@
       margin-bottom: 4px;
     }
 
+    .row-disabled { opacity: 0.6; text-decoration: line-through; }
+
     .col-hidden { display: none !important; }
 
     @media (max-width: 900px) {
@@ -433,7 +435,7 @@
       <table>
         <thead>
           <tr>
-            <th data-col="index">#</th><th data-col="item">Item</th><th data-col="descricao">Descrição</th><th data-col="valor">Valor</th><th data-col="qtdFisica">Qtd física</th><th data-col="total">Total</th>
+            <th data-col="index">#</th><th data-col="item">Item</th><th data-col="descricao">Descrição</th><th data-col="valor">Valor</th><th data-col="qtdFisica">Qtd física</th><th data-col="total">Total</th><th data-col="acoes">Ações</th>
           </tr>
         </thead>
         <tbody id="inventoryBody"></tbody>
@@ -548,7 +550,7 @@
   const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const TABLE_COLUMNS = {
-    inventory: ['index', 'item', 'descricao', 'valor', 'qtdFisica', 'total'],
+    inventory: ['index', 'item', 'descricao', 'valor', 'qtdFisica', 'total', 'acoes'],
     buy: ['item', 'descricao', 'qtdCompra', 'qtdFisica', 'qtdMinima', 'comprar', 'valor', 'total'],
     siga: ['item', 'descricao', 'qtdSiga', 'qtdFisica', 'diferenca', 'baixar', 'status'],
   };
@@ -557,7 +559,7 @@
     return {
       finance: { cashPhysical: 0, cashSiga: 0 },
       columns: {
-        inventory: { index: true, item: true, descricao: true, valor: true, qtdFisica: true, total: true },
+        inventory: { index: true, item: true, descricao: true, valor: true, qtdFisica: true, total: true, acoes: true },
         buy: { item: true, descricao: true, qtdCompra: true, qtdFisica: false, qtdMinima: true, comprar: true, valor: true, total: true },
         siga: { item: true, descricao: true, qtdSiga: true, qtdFisica: true, diferenca: true, baixar: true, status: true },
       },
@@ -574,6 +576,7 @@
   let products = [];
   let sigaRows = [];
   let sigaDiff = [];
+  const editingBuffers = {};
   let uiState = defaultUiState();
   let visibleInventoryIndexes = [];
   let pendingFocusIndex = null;
@@ -725,6 +728,7 @@
         qtdBase: asNumber(row[1]),
         qtdFisica: null,
         qtdCompra: null,
+        disabled: false,
         qtdMinima: asNumber(compra.qtdMinima),
       });
     }
@@ -835,7 +839,7 @@
   }
   function renderColumnControls(tableKey, containerId) {
     const labels = {
-      inventory: { index: '#', item: 'Item', descricao: 'Descrição', valor: 'Valor', qtdFisica: 'Qtd física', total: 'Total' },
+      inventory: { index: '#', item: 'Item', descricao: 'Descrição', valor: 'Valor', qtdFisica: 'Qtd física', total: 'Total', acoes: 'Ações' },
       buy: { item: 'Item', descricao: 'Descrição', qtdCompra: 'Qtd levantada', qtdFisica: 'Qtd física', qtdMinima: 'Qtd mínima', comprar: 'Comprar', valor: 'Valor', total: 'Total' },
       siga: { item: 'Item', descricao: 'Descrição', qtdSiga: 'Qtd Siga', qtdFisica: 'Qtd física', diferenca: 'Diferença', baixar: 'Baixar', status: 'Status' },
     };
@@ -874,15 +878,36 @@
     visibleInventoryIndexes = filtered.map(product => products.indexOf(product));
     filtered.forEach((product, visibleIndex) => {
       const index = products.indexOf(product);
-      body.insertAdjacentHTML('beforeend', `
-        <tr>
+      const rowClass = product.disabled ? 'row-disabled' : '';
+      const isEditing = Boolean(editingBuffers[index]);
+      if (isEditing) {
+        const buf = editingBuffers[index];
+        body.insertAdjacentHTML('beforeend', `
+        <tr class="${rowClass}">
           <td data-col="index">${visibleIndex + 1}</td>
-          <td data-col="item"><b>${product.item}</b></td>
+          <td data-col="item"><input id="edit_item_${index}" type="text" value="${escapeHtml(buf.item)}"></td>
+          <td data-col="descricao"><input id="edit_descricao_${index}" type="text" value="${escapeHtml(buf.descricao)}"></td>
+          <td data-col="valor"><input id="edit_valor_${index}" type="number" step="0.01" value="${buf.valor ?? 0}"></td>
+          <td data-col="qtdFisica"><input class="qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdFisica ?? ''}" onchange="updateQty(${index}, this.value)" onkeydown="handleQtyKeydown(event, ${index})"></td>
+          <td data-col="total">${money.format(asNumber(product.qtdFisica) * product.valor)}</td>
+          <td data-col="acoes">
+            <button onclick="saveEdit(${index})">Salvar</button>
+            <button class="secondary" onclick="cancelEdit(${index})">Cancelar</button>
+            <label class="column-toggle" style="margin-left:8px"><input type="checkbox" ${product.disabled ? 'checked' : ''} onchange="toggleDisabled(${index}, this.checked)" /> Desativado</label>
+          </td>
+        </tr>`);
+      } else {
+        body.insertAdjacentHTML('beforeend', `
+        <tr class="${rowClass}">
+          <td data-col="index">${visibleIndex + 1}</td>
+          <td data-col="item"><b>${product.item}</b> ${product.disabled ? '<span class="pill">Desativado</span>' : ''}</td>
           <td data-col="descricao">${escapeHtml(product.descricao)}</td>
           <td data-col="valor">${money.format(product.valor)}</td>
           <td data-col="qtdFisica"><input class="qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdFisica ?? ''}" onchange="updateQty(${index}, this.value)" onkeydown="handleQtyKeydown(event, ${index})"></td>
           <td data-col="total">${money.format(asNumber(product.qtdFisica) * product.valor)}</td>
+          <td data-col="acoes"><button onclick="startEdit(${index})">Editar</button> <label class="column-toggle" style="margin-left:8px"><input type="checkbox" ${product.disabled ? 'checked' : ''} onchange="toggleDisabled(${index}, this.checked)" /> Desativado</label></td>
         </tr>`);
+      }
     });
     if (pendingFocusIndex !== null) {
       const nextIndex = pendingFocusIndex;
@@ -893,11 +918,44 @@
       });
     }
   }
+  function startEdit(index) {
+    const product = products[index];
+    editingBuffers[index] = { item: product.item, descricao: product.descricao, valor: product.valor };
+    renderInventory();
+  }
+  function saveEdit(index) {
+    const product = products[index];
+    const elItem = document.getElementById(`edit_item_${index}`);
+    const elDesc = document.getElementById(`edit_descricao_${index}`);
+    const elVal = document.getElementById(`edit_valor_${index}`);
+    if (!product) return;
+    if (elItem) product.item = normalizeCode(elItem.value || product.item);
+    if (elDesc) product.descricao = String(elDesc.value || product.descricao).trim();
+    if (elVal) product.valor = asNumber(elVal.value);
+    delete editingBuffers[index];
+    saveStateToLocal();
+    if (sigaRows.length) rebuildSigaDiffFromRows();
+    renderAll();
+  }
+  function cancelEdit(index) {
+    delete editingBuffers[index];
+    renderAll();
+  }
+  function toggleDisabled(index, checked) {
+    const product = products[index];
+    if (!product) return;
+    product.disabled = Boolean(checked);
+    // when disabling, clear buy quantities
+    if (product.disabled) product.qtdCompra = null;
+    saveStateToLocal();
+    if (sigaRows.length) rebuildSigaDiffFromRows();
+    renderAll();
+  }
   function getBuyList() {
     return products.map(product => {
       const qtdCompra = product.qtdCompra === null || product.qtdCompra === undefined || product.qtdCompra === '' ? null : asNumber(product.qtdCompra);
       const qtdReferencia = qtdCompra ?? asNumber(product.qtdFisica);
-      const comprar = Math.max(0, asNumber(product.qtdMinima) - qtdReferencia);
+      const comprar = product.disabled ? 0 : Math.max(0, asNumber(product.qtdMinima) - qtdReferencia);
       return { ...product, qtdCompra, qtdReferencia, comprar, totalCompra: comprar * product.valor };
     });
   }
@@ -1009,10 +1067,11 @@
   function renderMetrics() {
     const buy = getBuyList().filter(item => item.comprar > 0);
     const baixar = sigaDiff.filter(item => item.baixar > 0);
-    const valor = products.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
+    const activeProducts = products.filter(p => !p.disabled);
+    const valor = activeProducts.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
     const financials = getFinancials();
     const fundCurrent = valor + financials.cashPhysical;
-    document.getElementById('metricItems').textContent = products.length;
+    document.getElementById('metricItems').textContent = activeProducts.length;
     document.getElementById('metricComprar').textContent = buy.length;
     document.getElementById('metricBaixar').textContent = baixar.length;
     document.getElementById('metricValor').textContent = money.format(valor);
@@ -1024,10 +1083,11 @@
   }
   function buildClosingRows() {
     const financials = getFinancials();
-    const valorEstoque = products.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
+    const activeProducts = products.filter(p => !p.disabled);
+    const valorEstoque = activeProducts.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
     const fundCurrent = valorEstoque + financials.cashPhysical;
     return [
-      { Descrição: 'TOTAL ITENS NO ESTOQUE (+)', Valor: products.length },
+      { Descrição: 'TOTAL ITENS NO ESTOQUE (+)', Valor: activeProducts.length },
       { Descrição: 'TOTAL DO ESTOQUE (+)', Valor: valorEstoque },
       { Descrição: 'TOTAL DO CAIXA (+)', Valor: financials.cashPhysical },
       { Descrição: 'TOTAL DO FUNDO BÍBLICO ATUAL (=)', Valor: fundCurrent },
@@ -1040,14 +1100,14 @@
   function renderReport() {
     const buy = getBuyList().filter(item => item.comprar > 0);
     const baixa = sigaDiff.filter(item => item.baixar > 0);
-    const valorFisico = products.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
+    const valorFisico = products.filter(p => !p.disabled).reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
     const valorCompra = buy.reduce((sum, item) => sum + item.totalCompra, 0);
     const financials = getFinancials();
     const fundCurrent = valorFisico + financials.cashPhysical;
     document.getElementById('reportBox').innerHTML = `
       <h3>Resumo do inventário e fechamento</h3>
       <p><b>Data:</b> ${new Date().toLocaleString('pt-BR')}</p>
-      <p><b>Total de itens contados:</b> ${products.length}</p>
+      <p><b>Total de itens contados:</b> ${products.filter(p => !p.disabled).length}</p>
       <p><b>Valor total do estoque físico:</b> ${money.format(valorFisico)}</p>
       <p><b>Itens para compra:</b> ${buy.length} | <b>Valor estimado:</b> ${money.format(valorCompra)}</p>
       <p><b>Itens para baixa no Siga:</b> ${baixa.length}</p>
@@ -1414,7 +1474,7 @@
   function exportWorkbook() {
     if (!window.XLSX) return alert('Biblioteca XLSX não carregou. Verifique a internet.');
     const wb = XLSX.utils.book_new();
-    const inventario = products.map(product => ({ Item: product.item, Descrição: product.descricao, Valor: product.valor, 'Qtd Física': asNumber(product.qtdFisica), Total: asNumber(product.qtdFisica) * product.valor }));
+    const inventario = products.filter(p => !p.disabled).map(product => ({ Item: product.item, Descrição: product.descricao, Valor: product.valor, 'Qtd Física': asNumber(product.qtdFisica), Total: asNumber(product.qtdFisica) * product.valor }));
     const compra = buyRowsForExport();
     const baixa = sigaDiff.filter(item => item.baixar > 0).map(item => ({ Item: item.item, Descrição: item.descricao, 'Qtd Siga': item.qtdSiga, 'Qtd Física': item.qtdFisica, Diferença: item.diff, Baixar: item.baixar, Status: statusLabel(item.status) }));
     XLSX.utils.book_append_sheet(wb, rowsToSheet(inventario), 'INVENTARIO_FISICO');
