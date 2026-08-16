@@ -440,6 +440,7 @@
     <div class="table-tools">
       <div class="toolbar">
         <input id="searchInventory" class="search" type="text" placeholder="Buscar por item ou descrição..." oninput="renderInventory()" />
+        <button onclick="addNewItem()">Novo item</button>
         <button onclick="setEmptyToZero()">Preencher vazios com 0</button>
         <button class="warning" onclick="resetPhysicalFromBase()">Restaurar qtd da BASE</button>
       </div>
@@ -981,6 +982,14 @@
     renderReport();
     syncColumnVisibility();
   }
+  function updateMinQty(index, value) {
+    products[index].qtdMinima = Math.max(0, asNumber(value));
+    saveStateToLocal();
+    renderBuyList();
+    renderMetrics();
+    renderReport();
+    syncColumnVisibility();
+  }
   function handleBuyQtyKeydown(event, index) {
     if (event.key !== 'Enter') return;
     event.preventDefault();
@@ -991,6 +1000,41 @@
     if (!confirm('Zerar o levantamento da lista de compra?')) return;
     products.forEach(product => { product.qtdCompra = null; });
     renderAll();
+  }
+  function addNewItem() {
+    const rawItem = prompt('Código do item (ex: 12345):', '');
+    if (rawItem === null) return;
+    const item = normalizeCode(rawItem);
+    if (!item) return alert('Informe um código de item válido.');
+
+    const exists = products.some(product => product.item === item);
+    if (exists) return alert('Esse código de item já existe no sistema.');
+
+    const descricaoInput = prompt('Descrição do item:', '') || '';
+    const valorInput = prompt('Valor unitário (ex: 12,50):', '0');
+    if (valorInput === null) return;
+    const qtdMinimaInput = prompt('Quantidade mínima (ex: 5):', '0');
+    if (qtdMinimaInput === null) return;
+    const qtdFisicaInput = prompt('Quantidade física inicial (opcional):', '');
+    if (qtdFisicaInput === null) return;
+
+    const novoItem = {
+      ordem: products.length + 1,
+      item,
+      descricao: String(descricaoInput).trim(),
+      valor: Math.max(0, asNumber(valorInput)),
+      qtdBase: 0,
+      qtdFisica: asNullableNumber(qtdFisicaInput),
+      qtdCompra: null,
+      disabled: false,
+      qtdMinima: Math.max(0, asNumber(qtdMinimaInput)),
+    };
+
+    products.push(novoItem);
+    if (sigaRows.length) rebuildSigaDiffFromRows();
+    saveStateToLocal();
+    renderAll();
+    showTab('levantamento');
   }
   function copyInventoryToBuySurvey() {
     products.forEach(product => { product.qtdCompra = asNumber(product.qtdFisica); });
@@ -1003,18 +1047,19 @@
     const showComprar = uiState.filters.buy.comprar;
     const showSemCompra = uiState.filters.buy.semCompra;
     const filtered = getBuyList()
-      .filter(product => (showComprar && product.comprar > 0) || (showSemCompra && product.comprar <= 0))
+      .filter(product => product.disabled || (showComprar && product.comprar > 0) || (showSemCompra && product.comprar <= 0))
       .filter(product => !search || product.item.includes(search) || normalizeCode(product.descricao).includes(search));
     visibleBuyIndexes = filtered.map(product => products.findIndex(item => item.item === product.item));
     filtered.forEach(product => {
         const index = products.findIndex(item => item.item === product.item);
+        const rowClass = product.disabled ? 'row-disabled' : '';
         body.insertAdjacentHTML('beforeend', `
-          <tr>
-            <td data-col="item"><b>${product.item}</b></td>
+          <tr class="${rowClass}">
+            <td data-col="item"><b>${product.item}</b> ${product.disabled ? '<span class="pill">Desativado</span>' : ''}<div class="small muted"><label><input type="checkbox" ${product.disabled ? 'checked' : ''} onchange="toggleDisabled(${index}, this.checked)"> Não considerar</label></div></td>
             <td data-col="descricao">${escapeHtml(product.descricao)}</td>
             <td data-col="qtdCompra"><input class="qty-input buy-qty-input" data-product-index="${index}" type="number" min="0" step="1" value="${product.qtdCompra ?? ''}" onchange="updateBuyQty(${index}, this.value)" onkeydown="handleBuyQtyKeydown(event, ${index})"></td>
             <td data-col="qtdFisica">${asNumber(product.qtdFisica)}</td>
-            <td data-col="qtdMinima">${product.qtdMinima}</td>
+            <td data-col="qtdMinima"><input class="qty-input" type="number" min="0" step="1" value="${asNumber(product.qtdMinima)}" onchange="updateMinQty(${index}, this.value)"></td>
             <td data-col="comprar" class="${product.comprar > 0 ? 'bad' : 'ok'}">${product.comprar}</td>
             <td data-col="valor">${money.format(product.valor)}</td>
             <td data-col="total">${money.format(product.totalCompra)}</td>
