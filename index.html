@@ -321,6 +321,50 @@
       letter-spacing: .03em;
     }
 
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 30;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(560px, 100%);
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #eaecf0;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .modal h3,
+    .modal p { margin: 0; }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .modal-grid .field input {
+      min-width: 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
     .row-disabled { opacity: 0.6; text-decoration: line-through; }
 
     .col-hidden { display: none !important; }
@@ -338,6 +382,7 @@
       main { width: min(100% - 18px, 1280px); }
       header { padding: 22px 12px; }
       th, td { padding: 8px 6px; }
+      .modal-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -559,6 +604,41 @@
     <div id="closingList" class="history-list"></div>
   </section>
 </main>
+
+<div id="newItemModal" class="modal-backdrop" onclick="handleModalBackdropClick(event)">
+  <form class="modal" onsubmit="saveNewItemFromModal(event)">
+    <div>
+      <h3>Novo item</h3>
+      <p class="small muted">Preencha os dados para incluir o item no inventário e na lista de compras.</p>
+    </div>
+    <div class="modal-grid">
+      <label class="field">
+        <span>Código do item</span>
+        <input id="newItemCode" type="text" required />
+      </label>
+      <label class="field">
+        <span>Valor unitário</span>
+        <input id="newItemValue" type="text" inputmode="decimal" value="0" />
+      </label>
+      <label class="field" style="grid-column: 1 / -1;">
+        <span>Descrição</span>
+        <input id="newItemDescription" type="text" />
+      </label>
+      <label class="field">
+        <span>Quantidade mínima</span>
+        <input id="newItemMinQty" type="number" min="0" step="1" value="0" />
+      </label>
+      <label class="field">
+        <span>Quantidade física inicial (opcional)</span>
+        <input id="newItemPhysicalQty" type="number" min="0" step="1" />
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" type="button" onclick="closeNewItemModal()">Cancelar</button>
+      <button type="submit">Adicionar item</button>
+    </div>
+  </form>
+</div>
 
 <script>
   const STORAGE_KEY = 'mvpInventarioSiga';
@@ -1002,38 +1082,57 @@
     renderAll();
   }
   function addNewItem() {
-    const rawItem = prompt('Código do item (ex: 12345):', '');
-    if (rawItem === null) return;
-    const item = normalizeCode(rawItem);
-    if (!item) return alert('Informe um código de item válido.');
+    const modal = document.getElementById('newItemModal');
+    if (!modal) return;
+    const codeInput = document.getElementById('newItemCode');
+    const descriptionInput = document.getElementById('newItemDescription');
+    const valueInput = document.getElementById('newItemValue');
+    const minQtyInput = document.getElementById('newItemMinQty');
+    const physicalQtyInput = document.getElementById('newItemPhysicalQty');
+    if (codeInput) codeInput.value = '';
+    if (descriptionInput) descriptionInput.value = '';
+    if (valueInput) valueInput.value = '0';
+    if (minQtyInput) minQtyInput.value = '0';
+    if (physicalQtyInput) physicalQtyInput.value = '';
+    modal.classList.add('open');
+    requestAnimationFrame(() => codeInput?.focus());
+  }
+  function closeNewItemModal() {
+    document.getElementById('newItemModal')?.classList.remove('open');
+  }
+  function handleModalBackdropClick(event) {
+    if (event.target?.id === 'newItemModal') closeNewItemModal();
+  }
+  function saveNewItemFromModal(event) {
+    event.preventDefault();
+    const codeInput = document.getElementById('newItemCode');
+    const descriptionInput = document.getElementById('newItemDescription');
+    const valueInput = document.getElementById('newItemValue');
+    const minQtyInput = document.getElementById('newItemMinQty');
+    const physicalQtyInput = document.getElementById('newItemPhysicalQty');
 
+    const item = normalizeCode(codeInput?.value || '');
+    if (!item) return alert('Informe um código de item válido.');
     const exists = products.some(product => product.item === item);
     if (exists) return alert('Esse código de item já existe no sistema.');
-
-    const descricaoInput = prompt('Descrição do item:', '') || '';
-    const valorInput = prompt('Valor unitário (ex: 12,50):', '0');
-    if (valorInput === null) return;
-    const qtdMinimaInput = prompt('Quantidade mínima (ex: 5):', '0');
-    if (qtdMinimaInput === null) return;
-    const qtdFisicaInput = prompt('Quantidade física inicial (opcional):', '');
-    if (qtdFisicaInput === null) return;
 
     const novoItem = {
       ordem: products.length + 1,
       item,
-      descricao: String(descricaoInput).trim(),
-      valor: Math.max(0, asNumber(valorInput)),
+      descricao: String(descriptionInput?.value || '').trim(),
+      valor: Math.max(0, asNumber(valueInput?.value || 0)),
       qtdBase: 0,
-      qtdFisica: asNullableNumber(qtdFisicaInput),
+      qtdFisica: asNullableNumber(physicalQtyInput?.value || ''),
       qtdCompra: null,
       disabled: false,
-      qtdMinima: Math.max(0, asNumber(qtdMinimaInput)),
+      qtdMinima: Math.max(0, asNumber(minQtyInput?.value || 0)),
     };
 
     products.push(novoItem);
     if (sigaRows.length) rebuildSigaDiffFromRows();
     saveStateToLocal();
     renderAll();
+    closeNewItemModal();
     showTab('levantamento');
   }
   function copyInventoryToBuySurvey() {
