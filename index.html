@@ -99,6 +99,12 @@
       align-items: center;
     }
 
+    .save-status {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
     .section-header {
       display: flex;
       justify-content: space-between;
@@ -369,11 +375,21 @@
 
     .col-hidden { display: none !important; }
 
+    .stock-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .stock-summary .summary-box { min-height: 92px; }
+
     @media (max-width: 900px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
       .action-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .two-cols { grid-template-columns: 1fr; }
       .finance-grid { grid-template-columns: 1fr; }
+      .stock-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @media (max-width: 560px) {
@@ -396,7 +412,6 @@
   <div class="card">
     <div class="action-bar">
       <div class="action-group">
-        <span class="action-group-title">Entrada</span>
         <div class="action-group-buttons">
           <label class="button-label">
             Abrir planilha
@@ -414,6 +429,7 @@
           <button class="secondary" onclick="saveLocal()">Salvar aqui</button>
           <button class="secondary" onclick="loadLocal()">Restaurar daqui</button>
         </div>
+        <div id="saveStatus" class="save-status" aria-live="polite">Salvamento automático ativo</div>
       </div>
       <div class="action-group">
         <span class="action-group-title">Arquivos</span>
@@ -477,8 +493,9 @@
     <button class="tab active" data-tab="levantamento" onclick="showTab('levantamento')">1. Levantamento físico</button>
     <button class="tab" data-tab="compra" onclick="showTab('compra')">2. Lista de compra</button>
     <button class="tab" data-tab="siga" onclick="showTab('siga')">3. Comparar com Siga</button>
-    <button class="tab" data-tab="relatorio" onclick="showTab('relatorio')">4. Relatório</button>
-    <button class="tab" data-tab="fechamentos" onclick="showTab('fechamentos')">5. Fechamentos</button>
+    <button class="tab" data-tab="estoque" onclick="showTab('estoque')">4. Estoque atual</button>
+    <button class="tab" data-tab="relatorio" onclick="showTab('relatorio')">5. Relatório</button>
+    <button class="tab" data-tab="fechamentos" onclick="showTab('fechamentos')">6. Fechamentos</button>
   </nav>
 
   <section id="levantamento" class="panel active card">
@@ -581,6 +598,82 @@
     </div>
   </section>
 
+  <section id="estoque" class="panel card">
+    <div class="section-header">
+      <div>
+        <h3>Estoque atual</h3>
+        <p class="muted small">Acompanhe o saldo contado e o saldo projetado depois das baixas pendentes.</p>
+      </div>
+      <span id="stockReference" class="pill">Sem referência</span>
+    </div>
+    <div class="stock-summary">
+      <div class="summary-box"><span>Itens no estoque</span><strong id="stockItemCount">0</strong><small>com saldo projetado maior que zero</small></div>
+      <div class="summary-box"><span>Quantidade total</span><strong id="stockQuantityTotal">0</strong><small>unidades projetadas</small></div>
+      <div class="summary-box"><span>Valor no Siga</span><strong id="stockSigaValue">R$ 0,00</strong><small>estoque registrado no fechamento</small></div>
+      <div class="summary-box"><span>Valor físico</span><strong id="stockPhysicalValue">R$ 0,00</strong><small>estoque contado no fechamento</small></div>
+    </div>
+    <div class="finance-grid" style="margin:0 0 16px">
+      <div class="summary-box"><span>Dinheiro físico</span><strong id="stockCashPhysical">R$ 0,00</strong></div>
+      <div class="summary-box"><span>Dinheiro no Siga</span><strong id="stockCashSiga">R$ 0,00</strong></div>
+      <div class="summary-box"><span>Fechamento consultado</span><strong id="stockClosingLabel">Nenhum</strong></div>
+    </div>
+    <div class="table-tools">
+      <div class="toolbar">
+        <input id="searchStock" class="search" type="text" placeholder="Buscar por item ou descrição..." oninput="renderCurrentStock()" />
+        <button class="secondary" onclick="startDailySales()">Usar estoque atual para o dia</button>
+        <button onclick="generateBuyListFromCurrentStock()">Gerar lista de compra</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Descrição</th><th>Saldo no Siga</th><th>Físico contado</th><th>Baixa pendente</th><th>Saldo projetado</th><th>Valor projetado</th><th>Status</th></tr>
+        </thead>
+        <tbody id="currentStockBody"></tbody>
+      </table>
+    </div>
+    <div class="section-header" style="margin-top:18px">
+      <div>
+        <h3>Vendas do dia</h3>
+        <p id="dailySalesStatus" class="muted small">Use o estoque atual como base e lance somente os itens vendidos.</p>
+      </div>
+      <div class="toolbar" style="margin:0">
+        <span class="pill">Vendidos: <span id="dailySalesTotal">0</span></span>
+        <button class="secondary" onclick="clearDailySales()">Encerrar vendas do dia</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Descrição</th><th>Saldo inicial</th><th>Vendido hoje</th><th>Saldo após vendas</th><th>Valor restante</th></tr>
+        </thead>
+        <tbody id="dailySalesBody"></tbody>
+      </table>
+    </div>
+    <div class="section-header" style="margin-top:18px">
+      <div>
+        <h3>Lista de compra do estoque atual</h3>
+        <p class="muted small">Calculada pela quantidade mínima de cada item menos o saldo projetado do fechamento consultado.</p>
+      </div>
+      <span class="pill">Total: <span id="stockBuyTotal">R$ 0,00</span></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Descrição</th><th>Saldo atual</th><th>Qtd. mínima</th><th>Comprar</th><th>Valor unitário</th><th>Total</th></tr>
+        </thead>
+        <tbody id="stockBuyBody"></tbody>
+      </table>
+    </div>
+    <div class="section-header" style="margin-top:18px">
+      <div>
+        <h3>Histórico de estoque</h3>
+        <p class="muted small">Cada fechamento fica preservado mesmo quando um novo fechamento é iniciado.</p>
+      </div>
+    </div>
+    <div id="stockHistory" class="history-list"></div>
+  </section>
+
   <section id="relatorio" class="panel card">
     <div class="toolbar">
       <button onclick="print()">Imprimir tela</button>
@@ -642,6 +735,7 @@
 
 <script>
   const STORAGE_KEY = 'mvpInventarioSiga';
+  const AUTO_SAVE_DELAY = 600;
   const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const TABLE_COLUMNS = {
@@ -665,6 +759,8 @@
       sigaHistory: [],
       buyHistory: [],
       closings: [],
+      stockHistory: [],
+      dailySales: null,
     };
   }
 
@@ -677,6 +773,7 @@
   let pendingFocusIndex = null;
   let visibleBuyIndexes = [];
   let pendingBuyFocusIndex = null;
+  let autoSaveTimer = null;
 
   function normalizeCode(value) { return String(value ?? '').trim().toUpperCase(); }
   function normalizeHeader(value) { return normalizeCode(value).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
@@ -720,6 +817,14 @@
   }
   function saveStateToLocal() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(getSystemSnapshot(true)));
+    const status = document.getElementById('saveStatus');
+    if (status) status.textContent = `Salvo automaticamente às ${new Date().toLocaleTimeString('pt-BR')}`;
+  }
+  function scheduleAutoSave() {
+    const status = document.getElementById('saveStatus');
+    if (status) status.textContent = 'Salvando alterações...';
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(saveStateToLocal, AUTO_SAVE_DELAY);
   }
   function restoreSystemSnapshot(snapshot, options = {}) {
     const currentClosings = uiState.closings || [];
@@ -786,6 +891,10 @@
   }
   function buildStateFromSaved(saved) {
     const defaults = defaultUiState();
+    const savedClosings = Array.isArray(saved?.closings) ? saved.closings : [];
+    const savedStockHistory = Array.isArray(saved?.stockHistory)
+      ? saved.stockHistory
+      : savedClosings.map(closing => createStockHistoryEntryFromSnapshot(closing.label, closing.savedAt, closing.snapshot)).filter(Boolean);
     return {
       finance: { ...defaults.finance, ...(saved?.finance || {}) },
       columns: {
@@ -799,7 +908,9 @@
       },
       sigaHistory: Array.isArray(saved?.sigaHistory) ? saved.sigaHistory : [],
       buyHistory: Array.isArray(saved?.buyHistory) ? saved.buyHistory : [],
-      closings: Array.isArray(saved?.closings) ? saved.closings : [],
+      closings: savedClosings,
+      stockHistory: savedStockHistory,
+      dailySales: saved?.dailySales && typeof saved.dailySales === 'object' ? saved.dailySales : null,
     };
   }
   function importWorkbook(arrayBuffer) {
@@ -886,6 +997,7 @@
     renderMetrics();
     renderReport();
     updateFinanceSummary();
+    scheduleAutoSave();
   }
   function syncFinanceInputs() {
     const physicalInput = document.getElementById('cashPhysical');
@@ -1061,6 +1173,7 @@
     renderMetrics();
     renderReport();
     syncColumnVisibility();
+    scheduleAutoSave();
   }
   function updateMinQty(index, value) {
     products[index].qtdMinima = Math.max(0, asNumber(value));
@@ -1222,6 +1335,247 @@
           </tr>`);
       });
   }
+  function getCurrentStockSource() {
+    const latestStock = (uiState.stockHistory || [])[0];
+    if (latestStock?.products?.length) {
+      return {
+        products: latestStock.products,
+        sigaRows: latestStock.sigaRows || [],
+        label: `Histórico: ${latestStock.label}`,
+        history: latestStock,
+      };
+    }
+    return { products, sigaRows, label: 'Fechamento em andamento', history: null };
+  }
+  function getCurrentStockRows() {
+    const source = getCurrentStockSource();
+    const productMap = new Map(source.products.map(product => [product.item, product]));
+    const sigaMap = new Map(source.sigaRows.map(row => [row.item, row]));
+    const itemCodes = new Set([...productMap.keys(), ...sigaMap.keys()]);
+    return [...itemCodes].map(item => {
+      const product = productMap.get(item);
+      const siga = sigaMap.get(item);
+      const qtdSiga = siga ? asNumber(siga.qtdSiga) : null;
+      const qtdFisica = product && product.qtdFisica !== null && product.qtdFisica !== undefined && product.qtdFisica !== '' ? asNumber(product.qtdFisica) : null;
+      const baixa = qtdSiga === null || qtdFisica === null ? 0 : Math.max(0, qtdSiga - qtdFisica);
+      const saldoProjetado = qtdFisica !== null ? qtdFisica : qtdSiga ?? 0;
+      const status = qtdFisica === null ? 'semContagem' : baixa > 0 ? 'baixa' : qtdSiga !== null && qtdFisica > qtdSiga ? 'divergencia' : 'ok';
+      return {
+        item,
+        descricao: product?.descricao || siga?.descricaoSiga || '',
+        valor: asNumber(product?.valor),
+        qtdMinima: asNumber(product?.qtdMinima),
+        disabled: Boolean(product?.disabled),
+        qtdSiga,
+        qtdFisica,
+        baixa,
+        saldoProjetado,
+        valorProjetado: saldoProjetado * asNumber(product?.valor),
+        comprar: product?.disabled ? 0 : Math.max(0, asNumber(product?.qtdMinima) - saldoProjetado),
+        status,
+      };
+    }).sort((left, right) => left.item.localeCompare(right.item));
+  }
+  function stockStatusLabel(status) {
+    if (status === 'baixa') return 'Baixa pendente';
+    if (status === 'divergencia') return 'Físico maior';
+    if (status === 'semContagem') return 'Sem contagem atual';
+    return 'OK';
+  }
+  function renderCurrentStock() {
+    const body = document.getElementById('currentStockBody');
+    if (!body) return;
+    const source = getCurrentStockSource();
+    const search = normalizeCode(document.getElementById('searchStock')?.value || '');
+    const rows = getCurrentStockRows();
+    const filtered = rows.filter(row => !search || row.item.includes(search) || normalizeCode(row.descricao).includes(search));
+    const totalQuantity = rows.reduce((sum, row) => sum + row.saldoProjetado, 0);
+    const physicalValue = rows.reduce((sum, row) => sum + (row.qtdFisica ?? 0) * row.valor, 0);
+    const sigaValue = rows.reduce((sum, row) => sum + (row.qtdSiga ?? 0) * row.valor, 0);
+    const history = source.history;
+    const setStockText = (id, value) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
+    };
+    setStockText('stockReference', source.label);
+    setStockText('stockItemCount', rows.filter(row => row.saldoProjetado > 0).length);
+    setStockText('stockQuantityTotal', totalQuantity);
+    setStockText('stockSigaValue', money.format(history?.valueSiga ?? sigaValue));
+    setStockText('stockPhysicalValue', money.format(history?.valuePhysical ?? physicalValue));
+    setStockText('stockCashPhysical', money.format(history?.cashPhysical ?? 0));
+    setStockText('stockCashSiga', money.format(history?.cashSiga ?? 0));
+    setStockText('stockClosingLabel', history?.label || 'Em andamento');
+    body.innerHTML = filtered.map(row => `
+      <tr>
+        <td><b>${escapeHtml(row.item)}</b></td>
+        <td>${escapeHtml(row.descricao)}</td>
+        <td>${row.qtdSiga === null ? '-' : row.qtdSiga}</td>
+        <td>${row.qtdFisica === null ? '-' : row.qtdFisica}</td>
+        <td class="${row.baixa > 0 ? 'bad' : 'ok'}">${row.baixa}</td>
+        <td><b>${row.saldoProjetado}</b></td>
+        <td>${money.format(row.valorProjetado)}</td>
+        <td><span class="pill">${stockStatusLabel(row.status)}</span></td>
+      </tr>
+    `).join('');
+    renderStockBuyList(rows, search);
+  }
+  function renderStockBuyList(stockRows = getCurrentStockRows(), search = '') {
+    const body = document.getElementById('stockBuyBody');
+    if (!body) return;
+    const rows = stockRows
+      .filter(row => row.comprar > 0)
+      .filter(row => !search || row.item.includes(search) || normalizeCode(row.descricao).includes(search));
+    const total = rows.reduce((sum, row) => sum + row.comprar * row.valor, 0);
+    const totalElement = document.getElementById('stockBuyTotal');
+    if (totalElement) totalElement.textContent = money.format(total);
+    body.innerHTML = rows.map(row => `
+      <tr>
+        <td><b>${escapeHtml(row.item)}</b></td>
+        <td>${escapeHtml(row.descricao)}</td>
+        <td>${row.saldoProjetado}</td>
+        <td>${row.qtdMinima}</td>
+        <td class="bad"><b>${row.comprar}</b></td>
+        <td>${money.format(row.valor)}</td>
+        <td>${money.format(row.comprar * row.valor)}</td>
+      </tr>
+    `).join('');
+  }
+  function renderStockHistory() {
+    const container = document.getElementById('stockHistory');
+    if (!container) return;
+    const history = uiState.stockHistory || [];
+    if (!history.length) {
+      container.innerHTML = '<p class="muted small">Nenhum fechamento de estoque salvo.</p>';
+      return;
+    }
+    container.innerHTML = history.map(entry => `
+      <div class="history-item">
+        <div>
+          <strong>${escapeHtml(entry.label)}</strong>
+          <div class="muted small">${new Date(entry.savedAt).toLocaleString('pt-BR')} | Estoque Siga: ${money.format(entry.valueSiga)} | Estoque físico: ${money.format(entry.valuePhysical)}</div>
+          <div class="muted small">Dinheiro físico: ${money.format(entry.cashPhysical)} | Dinheiro no Siga: ${money.format(entry.cashSiga)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  function getDailySalesRows() {
+    const session = uiState.dailySales;
+    if (!session?.balances) return [];
+    const sourceRows = getCurrentStockRows();
+    const sourceMap = new Map(sourceRows.map(row => [row.item, row]));
+    return Object.entries(session.balances).map(([item, saldoInicial]) => {
+      const source = sourceMap.get(item) || {};
+      const vendido = Math.min(asNumber(session.sales?.[item]), asNumber(saldoInicial));
+      return {
+        item,
+        descricao: source.descricao || '',
+        saldoInicial: asNumber(saldoInicial),
+        vendido,
+        saldoAtual: Math.max(0, asNumber(saldoInicial) - vendido),
+        valor: asNumber(source.valor),
+      };
+    }).sort((left, right) => left.item.localeCompare(right.item));
+  }
+  function startDailySales() {
+    const stockRows = getCurrentStockRows();
+    if (!stockRows.length) return alert('Não há estoque disponível para iniciar as vendas do dia.');
+    uiState.dailySales = {
+      startedAt: new Date().toISOString(),
+      sourceLabel: getCurrentStockSource().label,
+      balances: Object.fromEntries(stockRows.map(row => [row.item, row.saldoProjetado])),
+      sales: {},
+    };
+    saveStateToLocal();
+    renderAll();
+  }
+  function updateDailySale(item, value) {
+    if (!uiState.dailySales) return;
+    const maximum = asNumber(uiState.dailySales.balances?.[item]);
+    uiState.dailySales.sales[item] = Math.min(maximum, Math.max(0, asNumber(value)));
+    scheduleAutoSave();
+    renderDailySales();
+  }
+  function createStockHistoryEntryAfterDailySales(rows, source) {
+    const savedAt = new Date().toISOString();
+    const label = `Após vendas ${new Date(savedAt).toLocaleDateString('pt-BR')}`;
+    const remainingByItem = new Map(rows.map(row => [row.item, row.saldoAtual]));
+    const updatedProducts = cloneData(source.products).map(product => ({
+      ...product,
+      qtdFisica: remainingByItem.has(product.item) ? remainingByItem.get(product.item) : product.qtdFisica,
+    }));
+    const updatedSigaRows = rows.map(row => ({
+      item: row.item,
+      descricaoSiga: row.descricao,
+      qtdSiga: row.saldoAtual,
+      unidade: '',
+    }));
+    const value = rows.reduce((sum, row) => sum + row.saldoAtual * row.valor, 0);
+    return {
+      id: `stock-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      label,
+      savedAt,
+      products: updatedProducts,
+      sigaRows: updatedSigaRows,
+      valuePhysical: value,
+      valueSiga: value,
+      cashPhysical: asNumber(source.history?.cashPhysical),
+      cashSiga: asNumber(source.history?.cashSiga),
+    };
+  }
+  function clearDailySales() {
+    if (!uiState.dailySales) return;
+    if (!confirm('Encerrar as vendas do dia e atualizar o estoque com os saldos restantes?')) return;
+    const rows = getDailySalesRows();
+    const source = getCurrentStockSource();
+    const stockEntry = createStockHistoryEntryAfterDailySales(rows, source);
+    uiState.stockHistory = [stockEntry, ...(uiState.stockHistory || [])].slice(0, 60);
+    products = stockEntry.products;
+    sigaRows = stockEntry.sigaRows;
+    rebuildSigaDiffFromRows();
+    uiState.dailySales = null;
+    saveStateToLocal();
+    renderAll();
+  }
+  function renderDailySales() {
+    const body = document.getElementById('dailySalesBody');
+    if (!body) return;
+    const session = uiState.dailySales;
+    const status = document.getElementById('dailySalesStatus');
+    const totalElement = document.getElementById('dailySalesTotal');
+    if (!session?.balances) {
+      body.innerHTML = '<tr><td colspan="6" class="muted">Clique em “Usar estoque atual para o dia” para começar.</td></tr>';
+      if (status) status.textContent = 'Use o estoque atual como base e lance somente os itens vendidos.';
+      if (totalElement) totalElement.textContent = '0';
+      return;
+    }
+    const search = normalizeCode(document.getElementById('searchStock')?.value || '');
+    const rows = getDailySalesRows().filter(row => !search || row.item.includes(search) || normalizeCode(row.descricao).includes(search));
+    const totalSold = getDailySalesRows().reduce((sum, row) => sum + row.vendido, 0);
+    if (status) status.textContent = `Base: ${session.sourceLabel} | iniciado em ${new Date(session.startedAt).toLocaleString('pt-BR')}`;
+    if (totalElement) totalElement.textContent = totalSold;
+    body.innerHTML = rows.map(row => `
+      <tr>
+        <td><b>${escapeHtml(row.item)}</b></td>
+        <td>${escapeHtml(row.descricao)}</td>
+        <td>${row.saldoInicial}</td>
+        <td><input type="number" min="0" max="${row.saldoInicial}" step="1" value="${row.vendido}" data-daily-sale-item="${escapeHtml(row.item)}" onchange="updateDailySale(this.dataset.dailySaleItem, this.value)" /></td>
+        <td><b>${row.saldoAtual}</b></td>
+        <td>${money.format(row.saldoAtual * row.valor)}</td>
+      </tr>
+    `).join('');
+  }
+  function generateBuyListFromCurrentStock() {
+    if (!products.length) return alert('Abra uma planilha antes de gerar a lista de compra.');
+    const stockRows = getCurrentStockRows();
+    const stockMap = new Map(stockRows.map(row => [row.item, row]));
+    products.forEach(product => {
+      const stockRow = stockMap.get(product.item);
+      product.qtdCompra = stockRow ? stockRow.saldoProjetado : null;
+    });
+    saveStateToLocal();
+    renderAll();
+    showTab('compra');
+  }
   function renderMetrics() {
     const buy = getBuyList().filter(item => item.comprar > 0);
     const baixar = sigaDiff.filter(item => item.baixar > 0);
@@ -1381,11 +1735,32 @@
       snapshot: getSystemSnapshot(false),
     };
   }
+  function createStockHistoryEntryFromSnapshot(label, savedAt, snapshot) {
+    if (!snapshot || !Array.isArray(snapshot.products)) return null;
+    const productMap = new Map(snapshot.products.map(product => [product.item, product]));
+    const valuePhysical = snapshot.products.reduce((sum, product) => sum + asNumber(product.qtdFisica) * asNumber(product.valor), 0);
+    const valueSiga = (snapshot.sigaRows || []).reduce((sum, row) => sum + asNumber(row.qtdSiga) * asNumber(productMap.get(row.item)?.valor), 0);
+    const finance = snapshot.uiState?.finance || {};
+    return {
+      id: `stock-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      label,
+      savedAt: savedAt || new Date().toISOString(),
+      products: cloneData(snapshot.products),
+      sigaRows: cloneData(snapshot.sigaRows || []),
+      valuePhysical,
+      valueSiga,
+      cashPhysical: asNumber(finance.cashPhysical),
+      cashSiga: asNumber(finance.cashSiga),
+    };
+  }
   function finishClosing() {
     const defaultMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     const label = closingLabelFromInput(prompt('Informe o mês ou nome do fechamento:', defaultMonth));
     if (!label) return;
-    uiState.closings = [createClosingEntry(label), ...(uiState.closings || [])];
+    const closing = createClosingEntry(label);
+    const stockHistoryEntry = createStockHistoryEntryFromSnapshot(label, closing.savedAt, closing.snapshot);
+    uiState.closings = [closing, ...(uiState.closings || [])];
+    if (stockHistoryEntry) uiState.stockHistory = [stockHistoryEntry, ...(uiState.stockHistory || [])].slice(0, 60);
     saveStateToLocal();
     renderAll();
     showTab('fechamentos');
@@ -1493,11 +1868,14 @@
     renderInventory();
     renderBuyList();
     renderSigaDiff();
+    renderCurrentStock();
+    renderDailySales();
     syncColumnVisibility();
     renderMetrics();
     renderReport();
     renderSigaHistory();
     renderBuyHistory();
+    renderStockHistory();
     renderClosings();
     updateFinanceSummary();
   }
@@ -1507,6 +1885,7 @@
     renderAll();
   }
   function saveLocal() {
+    clearTimeout(autoSaveTimer);
     saveStateToLocal();
     alert('Dados salvos neste navegador.');
   }
@@ -1546,7 +1925,11 @@
   function loadLocal() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return alert('Nenhum dado salvo encontrado.');
-    restoreSystemSnapshot(JSON.parse(saved));
+    try {
+      restoreSystemSnapshot(JSON.parse(saved));
+    } catch {
+      return alert('Os dados salvos neste navegador estão inválidos.');
+    }
     renderAll();
   }
   function clearAll() {
@@ -1669,6 +2052,13 @@
   }
   function escapeHtml(text) { return String(text ?? '').replace(/[&<>\"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character])); }
 
+  document.addEventListener('input', scheduleAutoSave);
+  document.addEventListener('change', scheduleAutoSave);
+
+  const savedState = localStorage.getItem(STORAGE_KEY);
+  if (savedState) {
+    try { restoreSystemSnapshot(JSON.parse(savedState)); } catch { localStorage.removeItem(STORAGE_KEY); }
+  }
   renderAll();
 </script>
 </body>
