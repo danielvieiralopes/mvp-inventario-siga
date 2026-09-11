@@ -41,6 +41,8 @@ Aplicação local para controlar inventário físico, comparar o estoque com o S
 - Saldo projetado = quantidade física contada quando disponível; caso contrário, saldo do Siga.
 - Saldo após vendas = `Saldo inicial - Vendas do dia`, limitado a zero.
 - Valor do estoque = `Quantidade em estoque x Valor unitário`.
+- Dinheiro físico após vendas = `Dinheiro físico anterior + Valor vendido`.
+- O valor do estoque no Siga e o dinheiro contabilizado no Siga permanecem nos valores do último fechamento até que um novo fechamento seja realizado.
 - O cruzamento de itens usa o código da planilha na coluna `Item` e o código do Siga em `detail.CodigoAuxiliar`.
 
 ## Salvamento e backups

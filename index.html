@@ -639,6 +639,8 @@
       </div>
       <div class="toolbar" style="margin:0">
         <span class="pill">Vendidos: <span id="dailySalesTotal">0</span></span>
+        <span class="pill">Valor vendido: <span id="dailySalesValue">R$ 0,00</span></span>
+        <span class="pill">Dinheiro físico: <span id="dailyCashPhysical">R$ 0,00</span></span>
         <button class="secondary" onclick="clearDailySales()">Encerrar vendas do dia</button>
       </div>
     </div>
@@ -1455,8 +1457,17 @@
           <div class="muted small">${new Date(entry.savedAt).toLocaleString('pt-BR')} | Estoque Siga: ${money.format(entry.valueSiga)} | Estoque físico: ${money.format(entry.valuePhysical)}</div>
           <div class="muted small">Dinheiro físico: ${money.format(entry.cashPhysical)} | Dinheiro no Siga: ${money.format(entry.cashSiga)}</div>
         </div>
+        <button class="danger" onclick="removeStockHistoryEntry('${entry.id}')">Excluir registro</button>
       </div>
     `).join('');
+  }
+  function removeStockHistoryEntry(id) {
+    const entry = (uiState.stockHistory || []).find(item => item.id === id);
+    if (!entry) return;
+    if (!confirm(`Excluir o registro de estoque "${entry.label}"?`)) return;
+    uiState.stockHistory = uiState.stockHistory.filter(item => item.id !== id);
+    saveStateToLocal();
+    renderAll();
   }
   function getDailySalesRows() {
     const session = uiState.dailySales;
@@ -1509,17 +1520,21 @@
       qtdSiga: row.saldoAtual,
       unidade: '',
     }));
-    const value = rows.reduce((sum, row) => sum + row.saldoAtual * row.valor, 0);
+    const valuePhysical = rows.reduce((sum, row) => sum + row.saldoAtual * row.valor, 0);
+    const valueSold = rows.reduce((sum, row) => sum + row.vendido * row.valor, 0);
+    const previousCashPhysical = asNumber(source.history?.cashPhysical ?? getFinancials().cashPhysical);
+    const valueSiga = asNumber(source.history?.valueSiga ?? rows.reduce((sum, row) => sum + row.saldoInicial * row.valor, 0));
     return {
       id: `stock-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       label,
       savedAt,
       products: updatedProducts,
       sigaRows: updatedSigaRows,
-      valuePhysical: value,
-      valueSiga: value,
-      cashPhysical: asNumber(source.history?.cashPhysical),
-      cashSiga: asNumber(source.history?.cashSiga),
+      valuePhysical,
+      valueSiga,
+      valueSold,
+      cashPhysical: previousCashPhysical + valueSold,
+      cashSiga: asNumber(source.history?.cashSiga ?? getFinancials().cashSiga),
     };
   }
   function clearDailySales() {
@@ -1531,6 +1546,7 @@
     uiState.stockHistory = [stockEntry, ...(uiState.stockHistory || [])].slice(0, 60);
     products = stockEntry.products;
     sigaRows = stockEntry.sigaRows;
+    uiState.finance.cashPhysical = stockEntry.cashPhysical;
     rebuildSigaDiffFromRows();
     uiState.dailySales = null;
     saveStateToLocal();
@@ -1542,17 +1558,25 @@
     const session = uiState.dailySales;
     const status = document.getElementById('dailySalesStatus');
     const totalElement = document.getElementById('dailySalesTotal');
+    const valueElement = document.getElementById('dailySalesValue');
+    const cashElement = document.getElementById('dailyCashPhysical');
     if (!session?.balances) {
       body.innerHTML = '<tr><td colspan="6" class="muted">Clique em “Usar estoque atual para o dia” para começar.</td></tr>';
       if (status) status.textContent = 'Use o estoque atual como base e lance somente os itens vendidos.';
       if (totalElement) totalElement.textContent = '0';
+      if (valueElement) valueElement.textContent = money.format(0);
+      if (cashElement) cashElement.textContent = money.format(getFinancials().cashPhysical);
       return;
     }
     const search = normalizeCode(document.getElementById('searchStock')?.value || '');
     const rows = getDailySalesRows().filter(row => !search || row.item.includes(search) || normalizeCode(row.descricao).includes(search));
     const totalSold = getDailySalesRows().reduce((sum, row) => sum + row.vendido, 0);
+    const totalValueSold = getDailySalesRows().reduce((sum, row) => sum + row.vendido * row.valor, 0);
+    const cashStart = asNumber(getCurrentStockSource().history?.cashPhysical ?? getFinancials().cashPhysical);
     if (status) status.textContent = `Base: ${session.sourceLabel} | iniciado em ${new Date(session.startedAt).toLocaleString('pt-BR')}`;
     if (totalElement) totalElement.textContent = totalSold;
+    if (valueElement) valueElement.textContent = money.format(totalValueSold);
+    if (cashElement) cashElement.textContent = money.format(cashStart + totalValueSold);
     body.innerHTML = rows.map(row => `
       <tr>
         <td><b>${escapeHtml(row.item)}</b></td>
