@@ -1622,10 +1622,11 @@
   function buildClosingRows() {
     const financials = getFinancials();
     const activeProducts = products.filter(p => !p.disabled);
+    const inventoryQuantity = activeProducts.reduce((sum, product) => sum + asNumber(product.qtdFisica), 0);
     const valorEstoque = activeProducts.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
     const fundCurrent = valorEstoque + financials.cashPhysical;
     return [
-      { Descrição: 'TOTAL ITENS NO ESTOQUE (+)', Valor: activeProducts.length },
+      { Descrição: 'TOTAL ITENS NO ESTOQUE (+)', Valor: inventoryQuantity },
       { Descrição: 'TOTAL DO ESTOQUE (+)', Valor: valorEstoque },
       { Descrição: 'TOTAL DO CAIXA (+)', Valor: financials.cashPhysical },
       { Descrição: 'TOTAL DO FUNDO BÍBLICO ATUAL (=)', Valor: fundCurrent },
@@ -2085,7 +2086,10 @@
     XLSX.utils.book_append_sheet(wb, rowsToSheet(inventario), 'INVENTARIO_FISICO');
     XLSX.utils.book_append_sheet(wb, rowsToSheet(compra), 'COMPRA');
     XLSX.utils.book_append_sheet(wb, rowsToSheet(baixa), 'BAIXA_SIGA');
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(closing.totals || []), 'FECHAMENTO');
+    const closingTotals = (closing.totals || []).map(row => row.Descrição === 'TOTAL ITENS NO ESTOQUE (+)'
+      ? { ...row, Valor: closingProducts.filter(product => !product.disabled).reduce((sum, product) => sum + asNumber(product.qtdFisica), 0) }
+      : row);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(closingTotals), 'FECHAMENTO');
     const safeLabel = String(closing.label || 'fechamento').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'fechamento';
     XLSX.writeFile(wb, `fechamento-${safeLabel}.xlsx`);
   }
