@@ -1604,11 +1604,13 @@
     const buy = getBuyList().filter(item => item.comprar > 0);
     const baixar = sigaDiff.filter(item => item.baixar > 0);
     const activeProducts = products.filter(p => !p.disabled);
+    const inventoryQuantity = activeProducts.reduce((sum, product) => sum + asNumber(product.qtdFisica), 0);
+    const buyQuantity = buy.reduce((sum, item) => sum + item.comprar, 0);
     const valor = activeProducts.reduce((sum, product) => sum + (asNumber(product.qtdFisica) * product.valor), 0);
     const financials = getFinancials();
     const fundCurrent = valor + financials.cashPhysical;
-    document.getElementById('metricItems').textContent = activeProducts.length;
-    document.getElementById('metricComprar').textContent = buy.length;
+    document.getElementById('metricItems').textContent = inventoryQuantity;
+    document.getElementById('metricComprar').textContent = buyQuantity;
     document.getElementById('metricBaixar').textContent = baixar.length;
     document.getElementById('metricValor').textContent = money.format(valor);
     document.getElementById('metricCashPhysical').textContent = money.format(financials.cashPhysical);
