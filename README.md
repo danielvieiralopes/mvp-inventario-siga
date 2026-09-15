@@ -17,7 +17,7 @@ Aplicação local para controlar inventário físico, comparar o estoque com o S
 - Consolidação das vendas ao encerrar o dia, com atualização de quantidades, valores e novo snapshot histórico.
 - Fechamentos mensais com restauração do estado completo.
 - Histórico de listas de compra e históricos de JSON do Siga.
-- Exportação de relatório completo em XLSX e de listas em CSV.
+- Exportação de relatório completo em XLSX, de cada fechamento salvo em XLSX e de listas em CSV.
 - Backup completo em JSON e restauração posterior.
 - Salvamento automático no navegador e restauração após atualizar a página.
 

@@ -1842,6 +1842,7 @@
           </div>
           <div class="toolbar" style="margin:0">
             <button onclick="restoreClosing('${closing.id}')">Restaurar</button>
+            <button onclick="exportClosingWorkbook('${closing.id}')">Exportar XLSX</button>
             <button class="danger" onclick="removeClosing('${closing.id}')">Excluir</button>
           </div>
         </div>
@@ -2047,6 +2048,44 @@
     XLSX.utils.book_append_sheet(wb, rowsToSheet(baixa), 'BAIXA_SIGA');
     XLSX.utils.book_append_sheet(wb, rowsToSheet(buildClosingRows()), 'FECHAMENTO');
     XLSX.writeFile(wb, `inventario-siga-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+  function exportClosingWorkbook(id) {
+    if (!window.XLSX) return alert('Biblioteca XLSX não carregou. Verifique a internet.');
+    const closing = (uiState.closings || []).find(item => item.id === id);
+    const snapshot = closing?.snapshot;
+    if (!closing || !snapshot) return alert('Não encontrei os dados deste fechamento para exportar.');
+
+    const closingProducts = Array.isArray(snapshot.products) ? snapshot.products : [];
+    const closingSigaDiff = Array.isArray(snapshot.sigaDiff) ? snapshot.sigaDiff : [];
+    const inventario = closingProducts.filter(product => !product.disabled).map(product => ({
+      Item: product.item,
+      Descrição: product.descricao,
+      Valor: asNumber(product.valor),
+      'Qtd Física': asNumber(product.qtdFisica),
+      Total: asNumber(product.qtdFisica) * asNumber(product.valor),
+    }));
+    const compra = closingProducts.map(product => {
+      const qtdCompra = product.qtdCompra === null || product.qtdCompra === undefined || product.qtdCompra === '' ? null : asNumber(product.qtdCompra);
+      const qtdReferencia = qtdCompra ?? asNumber(product.qtdFisica);
+      const comprar = product.disabled ? 0 : Math.max(0, asNumber(product.qtdMinima) - qtdReferencia);
+      return { Item: product.item, Descrição: product.descricao, 'Qtd Levantada': qtdReferencia, 'Qtd Física': asNumber(product.qtdFisica), 'Qtd Mínima': asNumber(product.qtdMinima), Comprar: comprar, Valor: asNumber(product.valor), Total: comprar * asNumber(product.valor) };
+    }).filter(row => row.Comprar > 0);
+    const baixa = closingSigaDiff.filter(item => item.baixar > 0).map(item => ({
+      Item: item.item,
+      Descrição: item.descricao,
+      'Qtd Siga': item.qtdSiga,
+      'Qtd Física': item.qtdFisica,
+      Diferença: item.diff,
+      Baixar: item.baixar,
+      Status: statusLabel(item.status),
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(inventario), 'INVENTARIO_FISICO');
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(compra), 'COMPRA');
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(baixa), 'BAIXA_SIGA');
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(closing.totals || []), 'FECHAMENTO');
+    const safeLabel = String(closing.label || 'fechamento').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'fechamento';
+    XLSX.writeFile(wb, `fechamento-${safeLabel}.xlsx`);
   }
   function toCsv(rows) {
     if (!rows.length) return '';
