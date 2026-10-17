@@ -409,7 +409,8 @@
     .checklist-item.error { border-color: #fca5a5; background: #fef2f2; }
     .checklist-item h4 { margin: 0 0 6px; }
     .checklist-item p { margin: 4px 0; }
-    .checklist-item input[type="file"] { display: block; width: 100%; margin-top: 8px; }
+    .checklist-file-input { display: none !important; }
+    .checklist-file-button { margin-top: 8px; }
 
     .checklist-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
     .checklist-table th, .checklist-table td { border: 1px solid var(--border); padding: 8px; }
@@ -1035,9 +1036,10 @@
     const authScreen = document.getElementById('authScreen');
     const appMain = document.getElementById('appMain');
     const isApp = view === 'app';
+    const isEnteringApp = isApp && appMain?.hidden;
     if (authScreen) authScreen.hidden = isApp;
     if (appMain) appMain.hidden = !isApp;
-    if (isApp) window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isEnteringApp) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function updateAuthControls() {
     const userPanel = document.getElementById('loggedUserPanel');
@@ -2080,7 +2082,7 @@
     const text = String(value ?? '').trim();
     uiState.closingChecklist.values[field] = text === '' ? null : asNumber(text);
     saveStateToLocal();
-    renderChecklist();
+    renderChecklist(false);
   }
   async function handleChecklistDocumentUpload(key, input) {
     const file = input?.files?.[0];
@@ -2146,25 +2148,30 @@
     }
     return { errors, warnings, checks };
   }
-  function renderChecklist() {
+  function renderChecklist(renderInputs = true) {
     const checklist = uiState.closingChecklist || { competence: '', establishment: '', documents: {}, values: {} };
     const competence = document.getElementById('checklistCompetence');
     const establishment = document.getElementById('checklistEstablishment');
-    if (competence) competence.value = checklist.competence || '';
-    if (establishment) establishment.value = checklist.establishment || '';
+    if (renderInputs) {
+      if (competence) competence.value = checklist.competence || '';
+      if (establishment) establishment.value = checklist.establishment || '';
+    }
     const documentsContainer = document.getElementById('checklistDocuments');
-    if (documentsContainer) documentsContainer.innerHTML = CLOSING_DOCUMENTS.map(document => {
+    if (renderInputs && documentsContainer) documentsContainer.innerHTML = CLOSING_DOCUMENTS.map(document => {
       const metadata = checklist.documents?.[document.key];
       const statusClass = metadata ? metadata.status === 'error' ? 'error' : 'ok' : document.required ? 'warning' : '';
       return `<div class="checklist-item ${statusClass}">
         <h4>${document.label}${document.required ? ' *' : ''}</h4>
         <p class="small ${metadata ? 'ok' : 'muted'}">${metadata ? `Anexado: ${escapeHtml(metadata.name)}` : 'Nenhum arquivo anexado'}</p>
         ${metadata?.error ? `<p class="small bad">${escapeHtml(metadata.error)}</p>` : ''}
-        <input type="file" accept=".pdf,.json,.xlsx,.xls,.csv,image/*" onchange="handleChecklistDocumentUpload('${document.key}', this)" />
+        <label class="button-label secondary-label checklist-file-button">
+          ${metadata ? 'Substituir arquivo' : 'Escolher arquivo'}
+          <input class="checklist-file-input" type="file" accept=".pdf,.json,.xlsx,.xls,.csv,image/*" onchange="handleChecklistDocumentUpload('${document.key}', this)" />
+        </label>
       </div>`;
     }).join('');
     const valuesContainer = document.getElementById('checklistValues');
-    if (valuesContainer) {
+    if (renderInputs && valuesContainer) {
       const groups = [...new Set(CHECKLIST_VALUE_FIELDS.map(field => field.group))];
       valuesContainer.innerHTML = groups.map(group => `<div class="card" style="box-shadow:none;margin-top:10px"><h4>${group}</h4><table class="checklist-table"><tbody>${CHECKLIST_VALUE_FIELDS.filter(field => field.group === group).map(field => `<tr><td>${field.label}</td><td><input type="text" inputmode="decimal" value="${checklist.values?.[field.key] ?? ''}" placeholder="0,00" onchange="updateChecklistValue('${field.key}', this.value)" /></td></tr>`).join('')}</tbody></table></div>`).join('');
     }
