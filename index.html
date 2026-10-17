@@ -6,6 +6,7 @@
   <title>MVP Inventário Físico x Siga</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -2119,6 +2120,7 @@
   async function handleChecklistDocumentUpload(key, input) {
     const file = input?.files?.[0];
     if (!file) return;
+    await extractChecklistValuesFromPdf(key, file);
     const metadata = { name: file.name, size: file.size, type: file.type, uploadedAt: new Date().toISOString(), status: 'local' };
     if (supabaseClient && currentUser) {
       const safeName = file.name.replace(/[^a-z0-9._-]+/gi, '-');
@@ -2138,6 +2140,78 @@
   }
   function checklistMoney(value) {
     return value === null || value === undefined || value === '' ? '-' : money.format(asNumber(value));
+  }
+  async function extractPdfText(file) {
+    if (!window.pdfjsLib) throw new Error('Biblioteca PDF.js não carregou.');
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const pages = [];
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push(content.items.map(item => item.str).join(' '));
+    }
+    return pages.join('\n');
+  }
+  function extractLastMoney(text, label) {
+    const labelIndex = text.toLowerCase().lastIndexOf(label.toLowerCase());
+    if (labelIndex < 0) return null;
+    const fragment = text.slice(labelIndex, labelIndex + 180);
+    const matches = [...fragment.matchAll(/(?:R\$\s*)?(-?\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/g)];
+    return matches.length ? asNumber(matches[matches.length - 1][1]) : null;
+  }
+  function extractInventoryTotals(text) {
+    const matches = [...text.matchAll(/Total\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/gi)];
+    const last = matches[matches.length - 1];
+    return last ? { inventoryQuantity: asNumber(last[1]), inventoryValue: asNumber(last[2]) } : {};
+  }
+  function extractDemonstrativeTotals(text) {
+    const values = [...text.matchAll(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g)].map(match => asNumber(match[0]));
+    const row = values.slice(-16);
+    if (row.length < 16) return {};
+    return {
+      demonstrativeCash: row[5],
+      demonstrativeAcquisition: row[7],
+      demonstrativeStock: row[10],
+      demonstrativeFund: row[15],
+    };
+  }
+  function extractChecklistValuesFromText(key, text) {
+    const normalized = text.replace(/\s+/g, ' ');
+    if (key === 'inventario' || key === 'fechamento') return extractInventoryTotals(normalized);
+    if (key === 'demonstrativo') return extractDemonstrativeTotals(normalized);
+    if (key === 'saldo') return {
+      saldoStock: extractLastMoney(normalized, 'Saldo Estoque Atual'),
+      saldoCash: extractLastMoney(normalized, 'Saldo Caixa Atual'),
+      saldoFund: extractLastMoney(normalized, 'Total Fundo Bíblico'),
+      saldoEntry: extractLastMoney(normalized, 'Entrada Produtos'),
+    };
+    if (key === 'posicao') return {
+      positionQuantity: extractLastMoney(normalized, 'TOTAL ITENS NO ESTOQUE (+)'),
+      positionValue: extractLastMoney(normalized, 'TOTAL DO ESTOQUE (+)'),
+      positionCash: extractLastMoney(normalized, 'TOTAL DO CAIXA (+)'),
+      positionFund: extractLastMoney(normalized, 'TOTAL DO FUNDO BÍBLICO ATUAL (=)'),
+    };
+    if (key === 'termoCaixa') return { termCash: extractLastMoney(normalized, '1 - Valor em Dinheiro') };
+    if (key === 'dts') {
+      const matches = [...normalized.matchAll(/Total\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})/gi)];
+      const last = matches[matches.length - 1];
+      return last ? { dtTotal: asNumber(last[2]) } : {};
+    }
+    return {};
+  }
+  async function extractChecklistValuesFromPdf(key, file) {
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) return;
+    try {
+      const text = await extractPdfText(file);
+      const extracted = extractChecklistValuesFromText(key, text);
+      Object.entries(extracted).forEach(([field, value]) => {
+        if (value !== null && value !== undefined) uiState.closingChecklist.values[field] = value;
+      });
+      setAuthStatus(`${file.name}: valores extraídos. Revise o checklist.`);
+    } catch (error) {
+      setAuthStatus(`Não foi possível ler ${file.name}: ${error.message}`);
+    }
   }
   function getChecklistValidation() {
     const values = getChecklistValues();
