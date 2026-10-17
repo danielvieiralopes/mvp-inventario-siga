@@ -839,7 +839,10 @@
         <h3>Checklist do fechamento</h3>
         <p class="muted small">Anexe os documentos e informe os totais impressos para cruzar o fechamento antes de finalizar.</p>
       </div>
-      <button id="finishFromChecklist" onclick="finishClosingFromChecklist()">Finalizar fechamento</button>
+      <div class="toolbar" style="margin:0">
+        <button id="finishFromChecklist" onclick="finishClosingFromChecklist()">Finalizar fechamento</button>
+        <button class="warning" onclick="finishClosingWithDivergence()">Fechar com divergência</button>
+      </div>
     </div>
     <div class="toolbar">
       <label class="field"><span>Competência</span><input id="checklistCompetence" type="text" placeholder="09/2026" onchange="updateChecklistMeta('competence', this.value)" /></label>
@@ -2195,11 +2198,29 @@
     }
     finishClosing(true);
   }
-  function createClosingEntry(label) {
+  function finishClosingWithDivergence() {
+    const validation = getChecklistValidation();
+    if (!confirm(`Salvar este fechamento com ${validation.errors.length} divergência(s) para ajustar depois?`)) return;
+    const defaultMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const label = closingLabelFromInput(prompt('Informe o mês ou nome do fechamento:', defaultMonth));
+    if (!label) return;
+    const closing = createClosingEntry(label, { status: 'divergente', validation });
+    const stockHistoryEntry = createStockHistoryEntryFromSnapshot(label, closing.savedAt, closing.snapshot);
+    uiState.closings = [closing, ...(uiState.closings || [])];
+    if (stockHistoryEntry) uiState.stockHistory = [stockHistoryEntry, ...(uiState.stockHistory || [])].slice(0, 60);
+    saveStateToLocal();
+    renderAll();
+    showTab('fechamentos');
+    alert(`${label} salvo com divergências para ajuste posterior.`);
+  }
+  function createClosingEntry(label, options = {}) {
     return {
       id: `closing-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       label,
       savedAt: new Date().toISOString(),
+      status: options.status || 'conferido',
+      validation: options.validation ? cloneData(options.validation) : null,
+      checklist: cloneData(uiState.closingChecklist),
       totals: buildClosingRows(),
       snapshot: getSystemSnapshot(false),
     };
@@ -2257,6 +2278,7 @@
     if (!closing?.snapshot) return;
     if (!confirm(`Restaurar ${closing.label}? O estado atual será substituído.`)) return;
     restoreSystemSnapshot(closing.snapshot, { preserveClosings: true });
+    if (closing.checklist) uiState.closingChecklist = buildStateFromSaved({ closingChecklist: closing.checklist }).closingChecklist;
     saveStateToLocal();
     renderAll();
     showTab('relatorio');
@@ -2284,6 +2306,7 @@
         <div class="history-item">
           <div>
             <strong>${escapeHtml(closing.label)}</strong>
+            <div class="${closing.status === 'divergente' ? 'warn' : 'ok'} small">${closing.status === 'divergente' ? 'Fechamento com divergências' : 'Fechamento conferido'}</div>
             <div class="muted small">${new Date(closing.savedAt).toLocaleString('pt-BR')} | Fundo: ${money.format(totalFund)} | Diferença caixa: ${money.format(cashDiff)}</div>
           </div>
           <div class="toolbar" style="margin:0">
