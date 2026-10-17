@@ -483,6 +483,22 @@
       flex-wrap: wrap;
     }
 
+    .document-download-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .document-download-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eaecf0;
+    }
+
+    .document-download-item:last-child { border-bottom: 0; }
+
     .row-disabled { opacity: 0.6; text-decoration: line-through; }
 
     .col-hidden { display: none !important; }
@@ -894,6 +910,19 @@
       <button type="submit">Adicionar item</button>
     </div>
   </form>
+</div>
+
+<div id="closingDocumentsModal" class="modal-backdrop" onclick="handleClosingDocumentsBackdropClick(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="closingDocumentsTitle">
+    <div class="section-header">
+      <div>
+        <h3 id="closingDocumentsTitle">Documentos do fechamento</h3>
+        <p id="closingDocumentsSubtitle" class="small muted"></p>
+      </div>
+      <button class="secondary" type="button" onclick="closeClosingDocumentsModal()">Fechar</button>
+    </div>
+    <div id="closingDocumentsList" class="document-download-list"></div>
+  </div>
 </div>
 
 <script>
@@ -2283,6 +2312,43 @@
     renderAll();
     showTab('relatorio');
   }
+  function closeClosingDocumentsModal() {
+    document.getElementById('closingDocumentsModal')?.classList.remove('open');
+  }
+  function handleClosingDocumentsBackdropClick(event) {
+    if (event.target?.id === 'closingDocumentsModal') closeClosingDocumentsModal();
+  }
+  function openClosingDocuments(id) {
+    const closing = (uiState.closings || []).find(item => item.id === id);
+    if (!closing) return;
+    const list = document.getElementById('closingDocumentsList');
+    const subtitle = document.getElementById('closingDocumentsSubtitle');
+    if (subtitle) subtitle.textContent = `${closing.label} | ${new Date(closing.savedAt).toLocaleString('pt-BR')}`;
+    if (list) {
+      const documents = closing.checklist?.documents || {};
+      list.innerHTML = CLOSING_DOCUMENTS.map(document => {
+        const metadata = documents[document.key];
+        const canDownload = Boolean(metadata?.path && supabaseClient && currentUser);
+        return `<div class="document-download-item">
+          <div><strong>${document.label}</strong><div class="small muted">${metadata ? escapeHtml(metadata.name) : 'Não anexado'}</div></div>
+          <button class="secondary" type="button" ${canDownload ? '' : 'disabled'} onclick="downloadClosingDocument('${id}', '${document.key}')">Baixar</button>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('closingDocumentsModal')?.classList.add('open');
+  }
+  async function downloadClosingDocument(closingId, documentKey) {
+    const closing = (uiState.closings || []).find(item => item.id === closingId);
+    const metadata = closing?.checklist?.documents?.[documentKey];
+    if (!metadata?.path || !supabaseClient || !currentUser) return alert('Este documento não está disponível no Storage do Supabase.');
+    const { data, error } = await supabaseClient.storage.from('closing-documents').createSignedUrl(metadata.path, 60);
+    if (error || !data?.signedUrl) return alert(`Não foi possível gerar o download: ${error?.message || 'URL indisponível'}`);
+    const anchor = document.createElement('a');
+    anchor.href = data.signedUrl;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener';
+    anchor.click();
+  }
   function removeClosing(id) {
     const closing = (uiState.closings || []).find(item => item.id === id);
     if (!closing) return;
@@ -2312,6 +2378,7 @@
           <div class="toolbar" style="margin:0">
             <button onclick="restoreClosing('${closing.id}')">Restaurar</button>
             <button onclick="exportClosingWorkbook('${closing.id}')">Exportar XLSX</button>
+            <button class="secondary" onclick="openClosingDocuments('${closing.id}')">Documentos</button>
             <button class="danger" onclick="removeClosing('${closing.id}')">Excluir</button>
           </div>
         </div>
