@@ -47,6 +47,22 @@ O app continua funcionando localmente, mas pode sincronizar o snapshot completo 
 
 O primeiro login envia o estado local existente para o Supabase. Nos logins seguintes, o estado salvo na nuvem é carregado e as alterações passam a ser sincronizadas automaticamente. A política RLS garante que cada usuário só leia e altere o próprio registro.
 
+## Checklist de fechamento
+
+A aba **Checklist** permite anexar os documentos do fechamento e informar os totais impressos para conferência:
+
+- Demonstrativo Mensal do Fundo Bíblico;
+- Fechamento Fundo Bíblico;
+- Saldo do Fundo Bíblico;
+- Inventário de Produtos;
+- Posição do Estoque;
+- Termo de Verificação do Saldo do Caixa;
+- DTs, obrigatórias somente quando houver aquisição no período.
+
+Para habilitar o armazenamento dos anexos, execute também no SQL Editor o trecho de Storage presente em [supabase-schema.sql](supabase-schema.sql). Os arquivos são guardados em bucket privado, dentro da pasta do usuário autenticado.
+
+O botão de finalização bloqueia divergências de quantidade, valores, caixa, estoque, Fundo Bíblico, documentos ausentes e DTs necessárias. Campos de atenção, como saldo contábil não informado ou data inválida no Termo, permanecem visíveis para revisão.
+
 ## Regras de cálculo
 
 - Compra = `Quantidade mínima - Saldo atual`, limitado a zero.

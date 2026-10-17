@@ -391,6 +391,39 @@
       margin-bottom: 4px;
     }
 
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .checklist-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .checklist-item.ok { border-color: #86efac; background: #f0fdf4; }
+    .checklist-item.warning { border-color: #facc15; background: #fefce8; }
+    .checklist-item.error { border-color: #fca5a5; background: #fef2f2; }
+    .checklist-item h4 { margin: 0 0 6px; }
+    .checklist-item p { margin: 4px 0; }
+    .checklist-item input[type="file"] { display: block; width: 100%; margin-top: 8px; }
+
+    .checklist-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    .checklist-table th, .checklist-table td { border: 1px solid var(--border); padding: 8px; }
+    .checklist-table input { width: 100%; min-width: 100px; }
+
+    .checklist-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .checklist-summary .summary-box { min-height: 82px; }
+
     .edit-cell {
       display: flex;
       flex-direction: column;
@@ -478,6 +511,7 @@
       th, td { padding: 8px 6px; }
       .modal-grid { grid-template-columns: 1fr; }
       .auth-card { padding: 26px 20px; }
+      .checklist-grid, .checklist-summary { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -594,6 +628,7 @@
     <button class="tab" data-tab="estoque" onclick="showTab('estoque')">4. Estoque atual</button>
     <button class="tab" data-tab="relatorio" onclick="showTab('relatorio')">5. Relatório</button>
     <button class="tab" data-tab="fechamentos" onclick="showTab('fechamentos')">6. Fechamentos</button>
+    <button class="tab" data-tab="checklist" onclick="showTab('checklist')">7. Checklist</button>
   </nav>
 
   <section id="levantamento" class="panel active card">
@@ -796,6 +831,30 @@
     </div>
     <div id="closingList" class="history-list"></div>
   </section>
+
+  <section id="checklist" class="panel card">
+    <div class="section-header">
+      <div>
+        <h3>Checklist do fechamento</h3>
+        <p class="muted small">Anexe os documentos e informe os totais impressos para cruzar o fechamento antes de finalizar.</p>
+      </div>
+      <button id="finishFromChecklist" onclick="finishClosingFromChecklist()">Finalizar fechamento</button>
+    </div>
+    <div class="toolbar">
+      <label class="field"><span>Competência</span><input id="checklistCompetence" type="text" placeholder="09/2026" onchange="updateChecklistMeta('competence', this.value)" /></label>
+      <label class="field"><span>Estabelecimento</span><input id="checklistEstablishment" type="text" placeholder="BR 22-2657 - JARDIM HORTÊNCIA" onchange="updateChecklistMeta('establishment', this.value)" /></label>
+    </div>
+    <div id="checklistSummary" class="checklist-summary"></div>
+    <div id="checklistDocuments" class="checklist-grid"></div>
+    <div class="section-header" style="margin-top:18px">
+      <div>
+        <h3>Totais dos documentos</h3>
+        <p class="muted small">Preencha os valores exibidos nos documentos do Siga e na Posição do Estoque.</p>
+      </div>
+    </div>
+    <div id="checklistValues"></div>
+    <div id="checklistResults" class="history-list" style="margin-top:18px"></div>
+  </section>
 </main>
 
 <div id="newItemModal" class="modal-backdrop" onclick="handleModalBackdropClick(event)">
@@ -854,6 +913,40 @@
     siga: ['item', 'descricao', 'qtdSiga', 'qtdFisica', 'diferenca', 'baixar', 'status'],
   };
 
+  const CLOSING_DOCUMENTS = [
+    { key: 'demonstrativo', label: 'Demonstrativo Mensal do Fundo Bíblico', required: true },
+    { key: 'fechamento', label: 'Fechamento Fundo Bíblico', required: true },
+    { key: 'saldo', label: 'Saldo do Fundo Bíblico', required: true },
+    { key: 'inventario', label: 'Inventário de Produtos', required: true },
+    { key: 'posicao', label: 'Posição do Estoque', required: true },
+    { key: 'termoCaixa', label: 'Termo de Verificação do Saldo do Caixa', required: true },
+    { key: 'dts', label: 'DTs do período', required: false },
+  ];
+
+  const CHECKLIST_VALUE_FIELDS = [
+    { key: 'demonstrativeStock', label: 'Demonstrativo: saldo estoque', group: 'Demonstrativo' },
+    { key: 'demonstrativeCash', label: 'Demonstrativo: saldo caixa', group: 'Demonstrativo' },
+    { key: 'demonstrativeFund', label: 'Demonstrativo: total FB', group: 'Demonstrativo' },
+    { key: 'demonstrativeAcquisition', label: 'Demonstrativo: aquisição', group: 'Demonstrativo' },
+    { key: 'closingStock', label: 'Fechamento: total estoque', group: 'Fechamento' },
+    { key: 'closingCash', label: 'Fechamento: total caixa', group: 'Fechamento' },
+    { key: 'closingFund', label: 'Fechamento: total FB', group: 'Fechamento' },
+    { key: 'closingAcquisition', label: 'Fechamento: aquisição', group: 'Fechamento' },
+    { key: 'saldoStock', label: 'Saldo: estoque atual', group: 'Saldo' },
+    { key: 'saldoCash', label: 'Saldo: caixa atual', group: 'Saldo' },
+    { key: 'saldoFund', label: 'Saldo: total FB', group: 'Saldo' },
+    { key: 'saldoEntry', label: 'Saldo: entrada produtos', group: 'Saldo' },
+    { key: 'inventoryQuantity', label: 'Inventário: quantidade total', group: 'Inventário' },
+    { key: 'inventoryValue', label: 'Inventário: valor total', group: 'Inventário' },
+    { key: 'positionQuantity', label: 'Posição: quantidade total', group: 'Posição' },
+    { key: 'positionValue', label: 'Posição: valor estoque', group: 'Posição' },
+    { key: 'positionCash', label: 'Posição: total caixa', group: 'Posição' },
+    { key: 'positionFund', label: 'Posição: total FB', group: 'Posição' },
+    { key: 'termCash', label: 'Termo: saldo em caixa', group: 'Termo' },
+    { key: 'termAccounting', label: 'Termo: saldo contabilidade', group: 'Termo' },
+    { key: 'dtTotal', label: 'DTs: total das entradas', group: 'DTs' },
+  ];
+
   function defaultUiState() {
     return {
       finance: { cashPhysical: 0, cashSiga: 0 },
@@ -871,6 +964,7 @@
       closings: [],
       stockHistory: [],
       dailySales: null,
+      closingChecklist: { competence: '', establishment: '', documents: {}, values: {} },
     };
   }
 
@@ -1120,6 +1214,12 @@
       closings: savedClosings,
       stockHistory: savedStockHistory,
       dailySales: saved?.dailySales && typeof saved.dailySales === 'object' ? saved.dailySales : null,
+      closingChecklist: {
+        ...defaults.closingChecklist,
+        ...(saved?.closingChecklist || {}),
+        documents: { ...defaults.closingChecklist.documents, ...(saved?.closingChecklist?.documents || {}) },
+        values: { ...defaults.closingChecklist.values, ...(saved?.closingChecklist?.values || {}) },
+      },
     };
   }
   function importWorkbook(arrayBuffer) {
@@ -1960,6 +2060,134 @@
     const month = text.match(/^\d{1,2}$/) ? text.padStart(2, '0') : '';
     return month ? `Fechamento mês ${month}` : text;
   }
+  function getChecklistValues() {
+    return uiState.closingChecklist?.values || {};
+  }
+  function getChecklistMvpTotals() {
+    const activeProducts = products.filter(product => !product.disabled);
+    return {
+      quantity: activeProducts.reduce((sum, product) => sum + asNumber(product.qtdFisica), 0),
+      value: activeProducts.reduce((sum, product) => sum + asNumber(product.qtdFisica) * asNumber(product.valor), 0),
+      cash: getFinancials().cashPhysical,
+    };
+  }
+  function updateChecklistMeta(field, value) {
+    uiState.closingChecklist[field] = String(value || '').trim();
+    saveStateToLocal();
+    renderChecklist();
+  }
+  function updateChecklistValue(field, value) {
+    const text = String(value ?? '').trim();
+    uiState.closingChecklist.values[field] = text === '' ? null : asNumber(text);
+    saveStateToLocal();
+    renderChecklist();
+  }
+  async function handleChecklistDocumentUpload(key, input) {
+    const file = input?.files?.[0];
+    if (!file) return;
+    const metadata = { name: file.name, size: file.size, type: file.type, uploadedAt: new Date().toISOString(), status: 'local' };
+    if (supabaseClient && currentUser) {
+      const safeName = file.name.replace(/[^a-z0-9._-]+/gi, '-');
+      const path = `${currentUser.id}/${Date.now()}-${safeName}`;
+      const { error } = await supabaseClient.storage.from('closing-documents').upload(path, file, { upsert: true });
+      if (error) {
+        metadata.status = 'error';
+        metadata.error = error.message;
+      } else {
+        metadata.status = 'cloud';
+        metadata.path = path;
+      }
+    }
+    uiState.closingChecklist.documents[key] = metadata;
+    saveStateToLocal();
+    renderChecklist();
+  }
+  function checklistMoney(value) {
+    return value === null || value === undefined || value === '' ? '-' : money.format(asNumber(value));
+  }
+  function getChecklistValidation() {
+    const values = getChecklistValues();
+    const mvp = getChecklistMvpTotals();
+    const documents = uiState.closingChecklist?.documents || {};
+    const errors = [];
+    const warnings = [];
+    const checks = [];
+    const addCheck = (label, left, right, options = {}) => {
+      if (left === null || left === undefined || left === '' || right === null || right === undefined || right === '') {
+        (options.required ? errors : warnings).push(`${label}: valor não informado.`);
+        checks.push({ label, status: 'warning', detail: 'Informe os dois valores.' });
+        return;
+      }
+      const matches = Math.abs(asNumber(left) - asNumber(right)) < 0.01;
+      checks.push({ label, status: matches ? 'ok' : 'error', detail: `${checklistMoney(left)} x ${checklistMoney(right)}` });
+      if (!matches) errors.push(`${label}: ${checklistMoney(left)} x ${checklistMoney(right)}.`);
+    };
+    CLOSING_DOCUMENTS.filter(document => document.required).forEach(document => {
+      if (!documents[document.key]) errors.push(`Documento obrigatório ausente: ${document.label}.`);
+    });
+    addCheck('Quantidade Inventário x Posição', values.inventoryQuantity, values.positionQuantity, { required: true });
+    addCheck('Valor Inventário x Posição', values.inventoryValue, values.positionValue, { required: true });
+    addCheck('Quantidade Posição x MVP', values.positionQuantity, mvp.quantity, { required: true });
+    addCheck('Valor Posição x MVP', values.positionValue, mvp.value, { required: true });
+    addCheck('Caixa Posição x MVP', values.positionCash, mvp.cash, { required: true });
+    addCheck('Caixa Posição x Termo', values.positionCash, values.termCash, { required: true });
+    addCheck('Estoque Fechamento x Saldo', values.closingStock, values.saldoStock, { required: true });
+    addCheck('Estoque Saldo x Demonstrativo', values.saldoStock, values.demonstrativeStock, { required: true });
+    addCheck('Caixa Fechamento x Saldo', values.closingCash, values.saldoCash, { required: true });
+    addCheck('Caixa Saldo x Demonstrativo', values.saldoCash, values.demonstrativeCash, { required: true });
+    addCheck('Fundo Fechamento x Saldo', values.closingFund, values.saldoFund, { required: true });
+    addCheck('Fundo Saldo x Demonstrativo', values.saldoFund, values.demonstrativeFund, { required: true });
+    addCheck('Fundo Posição = estoque + caixa', values.positionFund, asNumber(values.positionValue) + asNumber(values.positionCash), { required: true });
+    const acquisition = Math.max(asNumber(values.demonstrativeAcquisition), asNumber(values.closingAcquisition), asNumber(values.saldoEntry), asNumber(values.dtTotal));
+    if (acquisition > 0 && !documents.dts) errors.push('Há aquisição no período, mas nenhuma DT foi anexada.');
+    if (acquisition > 0) addCheck('DTs x aquisição', values.dtTotal, acquisition, { required: true });
+    if (values.termAccounting === null || values.termAccounting === undefined || values.termAccounting === '') {
+      warnings.push('Termo: saldo de contabilidade não informado.');
+    }
+    return { errors, warnings, checks };
+  }
+  function renderChecklist() {
+    const checklist = uiState.closingChecklist || { competence: '', establishment: '', documents: {}, values: {} };
+    const competence = document.getElementById('checklistCompetence');
+    const establishment = document.getElementById('checklistEstablishment');
+    if (competence) competence.value = checklist.competence || '';
+    if (establishment) establishment.value = checklist.establishment || '';
+    const documentsContainer = document.getElementById('checklistDocuments');
+    if (documentsContainer) documentsContainer.innerHTML = CLOSING_DOCUMENTS.map(document => {
+      const metadata = checklist.documents?.[document.key];
+      const statusClass = metadata ? metadata.status === 'error' ? 'error' : 'ok' : document.required ? 'warning' : '';
+      return `<div class="checklist-item ${statusClass}">
+        <h4>${document.label}${document.required ? ' *' : ''}</h4>
+        <p class="small ${metadata ? 'ok' : 'muted'}">${metadata ? `Anexado: ${escapeHtml(metadata.name)}` : 'Nenhum arquivo anexado'}</p>
+        ${metadata?.error ? `<p class="small bad">${escapeHtml(metadata.error)}</p>` : ''}
+        <input type="file" accept=".pdf,.json,.xlsx,.xls,.csv,image/*" onchange="handleChecklistDocumentUpload('${document.key}', this)" />
+      </div>`;
+    }).join('');
+    const valuesContainer = document.getElementById('checklistValues');
+    if (valuesContainer) {
+      const groups = [...new Set(CHECKLIST_VALUE_FIELDS.map(field => field.group))];
+      valuesContainer.innerHTML = groups.map(group => `<div class="card" style="box-shadow:none;margin-top:10px"><h4>${group}</h4><table class="checklist-table"><tbody>${CHECKLIST_VALUE_FIELDS.filter(field => field.group === group).map(field => `<tr><td>${field.label}</td><td><input type="text" inputmode="decimal" value="${checklist.values?.[field.key] ?? ''}" placeholder="0,00" onchange="updateChecklistValue('${field.key}', this.value)" /></td></tr>`).join('')}</tbody></table></div>`).join('');
+    }
+    const validation = getChecklistValidation();
+    const summary = document.getElementById('checklistSummary');
+    if (summary) summary.innerHTML = [
+      ['Erros bloqueantes', validation.errors.length, validation.errors.length ? 'bad' : 'ok'],
+      ['Avisos', validation.warnings.length, validation.warnings.length ? 'warn' : 'ok'],
+      ['Status', validation.errors.length ? 'Pendente' : 'Pronto para revisar', validation.errors.length ? 'bad' : 'ok'],
+    ].map(([label, value, className]) => `<div class="summary-box"><span>${label}</span><strong class="${className}">${value}</strong></div>`).join('');
+    const results = document.getElementById('checklistResults');
+    if (results) results.innerHTML = [...validation.errors.map(message => `<div class="history-item"><strong class="bad">Divergência</strong><span>${escapeHtml(message)}</span></div>`), ...validation.warnings.map(message => `<div class="history-item"><strong class="warn">Atenção</strong><span>${escapeHtml(message)}</span></div>`), ...validation.checks.filter(check => check.status === 'ok').map(check => `<div class="history-item"><strong class="ok">Conferido</strong><span>${escapeHtml(check.label)}: ${escapeHtml(check.detail)}</span></div>`)].join('') || '<p class="ok">Nenhuma divergência encontrada.</p>';
+    const finishButton = document.getElementById('finishFromChecklist');
+    if (finishButton) finishButton.disabled = validation.errors.length > 0;
+  }
+  function finishClosingFromChecklist() {
+    const validation = getChecklistValidation();
+    if (validation.errors.length) {
+      renderChecklist();
+      return alert(`O fechamento possui ${validation.errors.length} pendência(s). Confira o checklist.`);
+    }
+    finishClosing(true);
+  }
   function createClosingEntry(label) {
     return {
       id: `closing-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1987,7 +2215,8 @@
       cashSiga: asNumber(finance.cashSiga),
     };
   }
-  function finishClosing() {
+  function finishClosing(skipChecklist = false) {
+    if (!skipChecklist) return finishClosingFromChecklist();
     const defaultMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     const label = closingLabelFromInput(prompt('Informe o mês ou nome do fechamento:', defaultMonth));
     if (!label) return;
@@ -2112,6 +2341,7 @@
     renderBuyHistory();
     renderStockHistory();
     renderClosings();
+    renderChecklist();
     updateFinanceSummary();
   }
   function showTab(id) {
