@@ -34,6 +34,19 @@ Aplicação local para controlar inventário físico, comparar o estoque com o S
 9. Use **Finalizar fechamento** para guardar uma fotografia mensal do estoque e do caixa.
 10. Use **Baixar backup** regularmente para manter uma cópia fora do navegador.
 
+## Login Google e sincronização Supabase
+
+O app continua funcionando localmente, mas pode sincronizar o snapshot completo por usuário no Supabase.
+
+1. Crie um projeto no [Supabase](https://supabase.com/) e execute o arquivo [supabase-schema.sql](supabase-schema.sql) no SQL Editor.
+2. No Supabase, habilite o provedor **Google** em **Authentication > Providers**.
+3. No Google Cloud Console, crie um OAuth Client ID do tipo **Web application** e use a callback URL exibida pelo Supabase em **Authentication > URL Configuration**.
+4. No Supabase, adicione a URL publicada do GitHub Pages em **Authentication > URL Configuration > Redirect URLs**, por exemplo `https://seu-usuario.github.io/seu-repositorio/`.
+5. Em `index.html`, preencha `SUPABASE_URL` e `SUPABASE_ANON_KEY` com os valores públicos do projeto, em **Project Settings > API**. Nunca use a `service_role key` no navegador.
+6. Publique o arquivo atualizado no GitHub Pages e teste **Entrar com Google**.
+
+O primeiro login envia o estado local existente para o Supabase. Nos logins seguintes, o estado salvo na nuvem é carregado e as alterações passam a ser sincronizadas automaticamente. A política RLS garante que cada usuário só leia e altere o próprio registro.
+
 ## Regras de cálculo
 
 - Compra = `Quantidade mínima - Saldo atual`, limitado a zero.
@@ -47,7 +60,7 @@ Aplicação local para controlar inventário físico, comparar o estoque com o S
 
 ## Salvamento e backups
 
-As alterações são salvas automaticamente no `localStorage` do navegador após uma breve pausa na edição. O estado restaurado inclui produtos, quantidades, comparações, fechamentos, históricos, vendas diárias e configurações da tela.
+Sem login, as alterações são salvas automaticamente no `localStorage` do navegador após uma breve pausa na edição. Com login Google configurado, o mesmo snapshot também é salvo no Supabase. O estado restaurado inclui produtos, quantidades, comparações, fechamentos, históricos, vendas diárias e configurações da tela.
 
 O salvamento é específico para o navegador e para o perfil utilizado. Limpar os dados do site ou trocar de navegador pode remover o estado local; por isso, use **Baixar backup** para gerar uma cópia JSON.
 

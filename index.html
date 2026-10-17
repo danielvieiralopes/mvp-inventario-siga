@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MVP Inventário Físico x Siga</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -103,6 +104,13 @@
       color: var(--muted);
       font-size: 12px;
       margin-top: 8px;
+    }
+
+    .auth-status {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+      min-height: 18px;
     }
 
     .section-header {
@@ -445,8 +453,11 @@
       <div class="action-group">
         <span class="action-group-title">Sessão</span>
         <div class="action-group-buttons">
+          <button id="googleSignInButton" onclick="signInWithGoogle()">Entrar com Google</button>
+          <button id="signOutButton" class="secondary" onclick="signOut()" hidden>Sair</button>
           <button class="danger" onclick="clearAll()">Limpar dados</button>
         </div>
+        <div id="authStatus" class="auth-status" aria-live="polite">Modo local ativo</div>
       </div>
     </div>
     <div class="instructions small">
@@ -738,7 +749,17 @@
 <script>
   const STORAGE_KEY = 'mvpInventarioSiga';
   const AUTO_SAVE_DELAY = 600;
+  // Configure these values with the public Supabase project URL and anon key.
+  const SUPABASE_URL = 'https://gyrvekxygkcpmoofjawj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5cnZla3h5Z2tjcG1vb2ZqYXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxOTQ0MDMsImV4cCI6MjEwNzc3MDQwM30.zQUvCWHd64VKRNH6HD8e6EQlGr1KYl1mY_jSIa-6ta0';
+  const SUPABASE_TABLE = 'inventario_state';
   const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const supabaseClient = SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+  let currentUser = null;
+  let cloudSaveTimer = null;
 
   const TABLE_COLUMNS = {
     inventory: ['index', 'item', 'descricao', 'valor', 'qtdFisica', 'total', 'acoes'],
@@ -821,6 +842,72 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(getSystemSnapshot(true)));
     const status = document.getElementById('saveStatus');
     if (status) status.textContent = `Salvo automaticamente às ${new Date().toLocaleTimeString('pt-BR')}`;
+    scheduleCloudSave();
+  }
+  function setAuthStatus(message) {
+    const status = document.getElementById('authStatus');
+    if (status) status.textContent = message;
+  }
+  function updateAuthControls() {
+    const signInButton = document.getElementById('googleSignInButton');
+    const signOutButton = document.getElementById('signOutButton');
+    if (signInButton) signInButton.hidden = Boolean(currentUser);
+    if (signOutButton) signOutButton.hidden = !currentUser;
+    if (currentUser) setAuthStatus(`Conectado como ${currentUser.email || 'usuário autenticado'}`);
+    else if (!supabaseClient) setAuthStatus('Modo local ativo. Configure o Supabase para sincronizar na nuvem.');
+    else setAuthStatus('Não conectado.');
+  }
+  async function signInWithGoogle() {
+    if (!supabaseClient) return alert('Configure SUPABASE_URL e SUPABASE_ANON_KEY no início do arquivo.');
+    const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } });
+    if (error) alert(`Não foi possível iniciar o login: ${error.message}`);
+  }
+  async function signOut() {
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) alert(`Não foi possível sair: ${error.message}`);
+  }
+  function scheduleCloudSave() {
+    if (!currentUser || !supabaseClient) return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(saveStateToCloud, AUTO_SAVE_DELAY);
+  }
+  async function saveStateToCloud() {
+    if (!currentUser || !supabaseClient) return;
+    setAuthStatus('Sincronizando alterações...');
+    const { error } = await supabaseClient.from(SUPABASE_TABLE).upsert({
+      user_id: currentUser.id,
+      payload: getSystemSnapshot(true),
+      updated_at: new Date().toISOString(),
+    });
+    if (error) setAuthStatus(`Erro ao sincronizar: ${error.message}`);
+    else updateAuthControls();
+  }
+  async function loadStateFromCloud() {
+    if (!currentUser || !supabaseClient) return;
+    const { data, error } = await supabaseClient.from(SUPABASE_TABLE).select('payload').eq('user_id', currentUser.id).maybeSingle();
+    if (error) return setAuthStatus(`Erro ao carregar dados: ${error.message}`);
+    if (data?.payload) {
+      restoreSystemSnapshot(data.payload);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data.payload));
+      renderAll();
+      setAuthStatus('Dados carregados do Supabase.');
+    } else {
+      await saveStateToCloud();
+      setAuthStatus('Dados locais enviados ao Supabase.');
+    }
+  }
+  async function initializeSupabase() {
+    if (!supabaseClient) return updateAuthControls();
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    currentUser = session?.user || null;
+    updateAuthControls();
+    if (currentUser) await loadStateFromCloud();
+    supabaseClient.auth.onAuthStateChange(async (_event, nextSession) => {
+      currentUser = nextSession?.user || null;
+      updateAuthControls();
+      if (currentUser) await loadStateFromCloud();
+    });
   }
   function scheduleAutoSave() {
     const status = document.getElementById('saveStatus');
@@ -2129,6 +2216,7 @@
     try { restoreSystemSnapshot(JSON.parse(savedState)); } catch { localStorage.removeItem(STORAGE_KEY); }
   }
   renderAll();
+  initializeSupabase();
 </script>
 </body>
 </html>
