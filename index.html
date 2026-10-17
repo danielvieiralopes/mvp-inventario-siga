@@ -23,6 +23,8 @@
 
     * { box-sizing: border-box; }
 
+    [hidden] { display: none !important; }
+
     body {
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
@@ -147,6 +149,13 @@
     .auth-card h2 { margin: 0 0 8px; }
     .auth-card p { color: var(--muted); line-height: 1.5; margin: 0 0 24px; }
     .auth-card button { width: 100%; justify-content: center; }
+
+    #appMain:not([hidden]) { animation: appReveal .42s ease both; }
+
+    @keyframes appReveal {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .user-account {
       display: flex;
@@ -930,6 +939,7 @@
     const isApp = view === 'app';
     if (authScreen) authScreen.hidden = isApp;
     if (appMain) appMain.hidden = !isApp;
+    if (isApp) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function updateAuthControls() {
     const userPanel = document.getElementById('loggedUserPanel');
