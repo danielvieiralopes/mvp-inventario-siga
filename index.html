@@ -34,6 +34,7 @@
     }
 
     header {
+      position: relative;
       background: linear-gradient(135deg, var(--primary), #164e63);
       color: #fff;
       padding: 28px 20px;
@@ -41,6 +42,39 @@
 
     header h1 { margin: 0 0 8px; font-size: 26px; }
     header p { margin: 0; max-width: 980px; line-height: 1.5; opacity: .95; }
+
+    .help-button {
+      position: absolute;
+      top: 22px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      justify-content: center;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .6);
+      background: transparent;
+      font-size: 18px;
+    }
+
+    .help-button:hover { background: rgba(255, 255, 255, .16); }
+
+    .help-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .help-section {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .help-section h4 { margin: 0 0 8px; color: var(--primary-dark); }
+    .help-section p { margin: 6px 0; line-height: 1.5; }
+    .help-section ul { margin: 8px 0 0; padding-left: 20px; }
+    .help-section li { margin: 5px 0; line-height: 1.4; }
 
     main {
       width: min(1280px, calc(100% - 32px));
@@ -534,6 +568,8 @@
       .modal-grid { grid-template-columns: 1fr; }
       .auth-card { padding: 26px 20px; }
       .checklist-grid, .checklist-summary { grid-template-columns: 1fr; }
+      .help-grid { grid-template-columns: 1fr; }
+      .help-button { top: 14px; right: 12px; }
     }
   </style>
 </head>
@@ -541,6 +577,7 @@
 <header>
   <h1>Inventário Físico x Siga</h1>
   <p>MVP local para importar sua planilha, lançar a contagem física, gerar lista de compra e comparar com o estoque JSON do Siga para descobrir o que precisa baixar.</p>
+  <button class="help-button" title="Abrir ajuda" aria-label="Abrir ajuda" onclick="showTab('ajuda')">i</button>
 </header>
 
 <section id="authScreen" class="auth-screen" hidden>
@@ -653,6 +690,7 @@
     <button class="tab" data-tab="relatorio" onclick="showTab('relatorio')">5. Relatório</button>
     <button class="tab" data-tab="fechamentos" onclick="showTab('fechamentos')">6. Fechamentos</button>
     <button class="tab" data-tab="checklist" onclick="showTab('checklist')">7. Checklist</button>
+    <button class="tab" data-tab="ajuda" onclick="showTab('ajuda')">8. Ajuda</button>
   </nav>
 
   <section id="levantamento" class="panel active card">
@@ -886,6 +924,105 @@
     </div>
     <div id="checklistValues"></div>
     <div id="checklistResults" class="history-list" style="margin-top:18px"></div>
+  </section>
+
+  <section id="ajuda" class="panel card">
+    <div class="section-header">
+      <div>
+        <h3>Ajuda e documentação</h3>
+        <p class="muted small">Guia rápido das etapas e regras do Inventário Físico x Siga.</p>
+      </div>
+      <button class="secondary" onclick="showTab('levantamento')">Voltar ao inventário</button>
+    </div>
+    <div class="help-grid">
+      <article class="help-section">
+        <h4>1. Levantamento físico</h4>
+        <p>Importe a planilha com as abas <b>BASE</b>, <b>INVENTARIO</b> e <b>COMPRA</b>. Preencha a quantidade encontrada de cada item.</p>
+        <ul><li>Use <b>Reordenar itens</b> para organizar a tela na ordem física das prateleiras.</li><li>Use <b>Novo item</b> para cadastrar um produto que não está na planilha.</li><li>Marque <b>Desativado</b> quando o item não deve participar da compra.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>2. Lista de compra</h4>
+        <p>A compra é calculada pela quantidade mínima menos o saldo informado.</p>
+        <ul><li><b>Mostrar itens para comprar</b> exibe os itens abaixo do mínimo.</li><li><b>Mostrar itens sem compra</b> exibe os demais itens ativos.</li><li><b>Mostrar itens não considerar</b> exibe produtos desativados.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>3. Comparar com Siga</h4>
+        <p>Cole o JSON exportado do Siga para comparar o saldo do sistema com a contagem física.</p>
+        <p>A diferença positiva indica quantidade a baixar no Siga. A diferença negativa indica que o físico está maior.</p>
+      </article>
+      <article class="help-section">
+        <h4>4. Estoque atual e vendas</h4>
+        <p>Consulte o saldo projetado, gere compras a partir do estoque e registre as vendas do dia.</p>
+        <p>Ao encerrar as vendas, o sistema cria um novo histórico sem apagar os fechamentos anteriores.</p>
+      </article>
+      <article class="help-section">
+        <h4>5. Fechamentos</h4>
+        <p>Um fechamento guarda uma fotografia do estoque, caixa, comparações, histórico e relatório do período.</p>
+        <ul><li>Os fechamentos aparecem ordenados pela competência.</li><li>É possível restaurar, exportar XLSX, baixar documentos e exportar um pacote seletivo.</li><li>O pacote seletivo permite transferir um único mês entre computadores.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>6. Checklist</h4>
+        <p>Anexe os documentos do período e revise os valores extraídos ou informados.</p>
+        <ul><li>O fechamento aprovado exige documentos e valores consistentes.</li><li><b>Fechar com divergência</b> salva o período para ajuste posterior.</li><li>DTs são exigidas quando houve aquisição no período.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Salvamento</h4>
+        <p>No modo local, os dados ficam apenas neste navegador. Use <b>Baixar backup</b> para guardar uma cópia.</p>
+        <p>No modo Google, o estado é sincronizado no Supabase por usuário.</p>
+      </article>
+      <article class="help-section">
+        <h4>Boas práticas</h4>
+        <ul><li>Faça backup antes de iniciar um novo fechamento.</li><li>Revise divergências antes de finalizar.</li><li>Use a competência correta ao importar um fechamento de outro computador.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Primeiro acesso</h4>
+        <ul><li>Escolha <b>Entrar com Google</b> para salvar na nuvem por usuário.</li><li>Escolha <b>Continuar sem login</b> para manter tudo somente neste navegador.</li><li>O botão <b>Entrar e sincronizar</b> permite mudar do modo local para a nuvem depois.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Rotina mensal recomendada</h4>
+        <ol><li>Faça backup do mês anterior.</li><li>Importe a planilha atual.</li><li>Organize os itens na ordem física.</li><li>Preencha o levantamento.</li><li>Cole o JSON do Siga e confira as baixas.</li><li>Lance as baixas e as vendas no Siga.</li><li>Gere os documentos do período.</li><li>Use o Checklist e finalize o fechamento.</li></ol>
+      </article>
+      <article class="help-section">
+        <h4>Regras de cálculo</h4>
+        <ul><li><b>Baixa pendente:</b> saldo do Siga menos quantidade física.</li><li><b>Compra:</b> quantidade mínima menos saldo atual, limitada a zero.</li><li><b>Valor do estoque:</b> quantidade multiplicada pelo valor unitário.</li><li><b>Fundo Bíblico:</b> saldo do estoque mais saldo do caixa.</li><li>Valores negativos de compra são tratados como zero.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Como os documentos se relacionam</h4>
+        <p>O <b>Inventário de Produtos</b> e a <b>Posição do Estoque</b> devem concordar em quantidade e valor dos produtos.</p>
+        <p>O <b>Saldo</b>, o <b>Fechamento</b> e o <b>Demonstrativo</b> devem concordar em estoque, caixa e total do Fundo Bíblico.</p>
+        <p>O <b>Termo de Caixa</b> deve confirmar o dinheiro físico. As <b>DTs</b> comprovam as entradas quando houve compra.</p>
+      </article>
+      <article class="help-section">
+        <h4>Checklist dos documentos</h4>
+        <ul><li>Obrigatórios: Demonstrativo, Fechamento, Saldo, Inventário, Posição e Termo de Caixa.</li><li>DTs são obrigatórias somente quando houver aquisição no período.</li><li>O sistema compara totais e identifica campos ausentes.</li><li>Use <b>Fechar com divergência</b> quando precisar registrar o mês e corrigir depois.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Leitura automática de PDFs</h4>
+        <p>PDFs com texto selecionável podem preencher os totais automaticamente ao serem anexados no Checklist.</p>
+        <p>Depois da leitura, revise os valores. PDFs escaneados como imagem podem não ser reconhecidos e devem ser preenchidos manualmente.</p>
+      </article>
+      <article class="help-section">
+        <h4>Transferir um fechamento</h4>
+        <ol><li>No computador de origem, abra Fechamentos.</li><li>Use <b>Exportar pacote</b> no mês desejado.</li><li>No computador atual, use <b>Importar fechamento</b>.</li><li>Confirme a substituição apenas se a competência já existir.</li></ol>
+        <p>O pacote importa um mês sem substituir os demais fechamentos.</p>
+      </article>
+      <article class="help-section">
+        <h4>Backup e recuperação</h4>
+        <ul><li><b>Baixar backup:</b> exporta o estado completo.</li><li><b>Restaurar backup:</b> substitui o estado atual, portanto faça outro backup antes.</li><li><b>Exportar pacote:</b> transfere somente um fechamento.</li><li>Arquivos do Storage dependem da configuração do bucket e da mesma conta autorizada.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Privacidade e segurança</h4>
+        <ul><li>No modo local, os dados ficam no perfil do navegador.</li><li>No modo Google, cada usuário acessa somente o próprio registro.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Problemas comuns</h4>
+        <ul><li><b>Fechamento bloqueado:</b> abra o Checklist e corrija os erros listados.</li><li><b>PDF sem valores:</b> informe os totais manualmente e revise a competência.</li></ul>
+      </article>
+      <article class="help-section">
+        <h4>Glossário</h4>
+        <ul><li><b>Saldo Siga:</b> quantidade registrada no sistema externo.</li><li><b>Físico contado:</b> quantidade encontrada na conferência.</li><li><b>Saldo projetado:</b> base usada para estoque e compras.</li><li><b>Baixa:</b> retirada no Siga de produtos vendidos ou consumidos.</li><li><b>DT:</b> documento de entrada de produtos.</li><li><b>Fechamento com divergência:</b> registro provisório que pode ser corrigido depois.</li></ul>
+      </article>
+    </div>
   </section>
 </main>
 
