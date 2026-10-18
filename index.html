@@ -154,6 +154,7 @@
     .auth-card h2 { margin: 0 0 8px; }
     .auth-card p { color: var(--muted); line-height: 1.5; margin: 0 0 24px; }
     .auth-card button { width: 100%; justify-content: center; }
+    .auth-card button + button { margin-top: 10px; }
 
     #appMain:not([hidden]) { animation: appReveal .42s ease both; }
 
@@ -545,6 +546,7 @@
     <h2 id="authTitle">Entrar no Inventário</h2>
     <p id="authDescription">Acesse seus dados de estoque com sua conta Google. Cada usuário possui seu próprio inventário sincronizado.</p>
     <button id="authGoogleButton" onclick="signInWithGoogle()">Entrar com Google</button>
+    <button class="secondary" onclick="continueInLocalMode()">Continuar sem login</button>
     <div id="authScreenStatus" class="auth-status" aria-live="polite"></div>
   </div>
 </section>
@@ -593,6 +595,7 @@
               <span id="userEmail"></span>
             </div>
           </div>
+          <button id="cloudSignInButton" class="secondary" onclick="signInWithGoogle()" hidden>Entrar e sincronizar</button>
           <button id="switchUserButton" class="secondary" onclick="switchUser()" hidden>Trocar usuário</button>
           <button class="danger" onclick="clearAll()">Limpar dados</button>
         </div>
@@ -937,12 +940,14 @@
   const SUPABASE_URL = 'https://gyrvekxygkcpmoofjawj.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5cnZla3h5Z2tjcG1vb2ZqYXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxOTQ0MDMsImV4cCI6MjEwNzc3MDQwM30.zQUvCWHd64VKRNH6HD8e6EQlGr1KYl1mY_jSIa-6ta0';
   const SUPABASE_TABLE = 'inventario_state';
+  const LOCAL_MODE_KEY = 'mvpInventarioSigaLocalMode';
   const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
   const supabaseClient = SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
   let currentUser = null;
+  let localMode = localStorage.getItem(LOCAL_MODE_KEY) === 'true';
   let cloudSaveTimer = null;
 
   const TABLE_COLUMNS = {
@@ -1084,8 +1089,10 @@
     const userName = document.getElementById('userName');
     const userEmail = document.getElementById('userEmail');
     const userAvatar = document.getElementById('userAvatar');
+    const cloudSignInButton = document.getElementById('cloudSignInButton');
     if (userPanel) userPanel.hidden = !currentUser;
     if (switchButton) switchButton.hidden = !currentUser;
+    if (cloudSignInButton) cloudSignInButton.hidden = Boolean(currentUser) || !supabaseClient;
     if (currentUser) {
       const metadata = currentUser.user_metadata || {};
       const name = metadata.full_name || metadata.name || currentUser.email || 'Usuário autenticado';
@@ -1097,9 +1104,9 @@
       }
       setAuthView('app');
       setAuthStatus(`Conectado como ${currentUser.email || 'usuário autenticado'}`);
-    } else if (!supabaseClient) {
+    } else if (!supabaseClient || localMode) {
       setAuthView('app');
-      setAuthStatus('Modo local ativo. Configure o Supabase para sincronizar na nuvem.');
+      setAuthStatus('Modo local ativo. Os dados ficam somente neste navegador.');
     } else {
       setAuthView('login');
       setAuthStatus('Entre com sua conta Google para continuar.');
@@ -1107,6 +1114,8 @@
   }
   async function signInWithGoogle() {
     if (!supabaseClient) return alert('Configure SUPABASE_URL e SUPABASE_ANON_KEY no início do arquivo.');
+    localMode = false;
+    localStorage.removeItem(LOCAL_MODE_KEY);
     const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account' } } });
     if (error) alert(`Não foi possível iniciar o login: ${error.message}`);
   }
@@ -1117,6 +1126,13 @@
   }
   async function switchUser() {
     await signOut();
+  }
+  function continueInLocalMode() {
+    localMode = true;
+    localStorage.setItem(LOCAL_MODE_KEY, 'true');
+    currentUser = null;
+    setAuthView('app');
+    updateAuthControls();
   }
   function scheduleCloudSave() {
     if (!currentUser || !supabaseClient) return;
@@ -1149,7 +1165,7 @@
     }
   }
   async function initializeSupabase() {
-    if (!supabaseClient) return updateAuthControls();
+    if (!supabaseClient || localMode) return updateAuthControls();
     setAuthView('login');
     setAuthStatus('Verificando sessão...');
     const { data: { session } } = await supabaseClient.auth.getSession();
