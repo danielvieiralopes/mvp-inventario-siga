@@ -2458,6 +2458,17 @@
     saveStateToLocal();
     renderClosings();
   }
+  function getClosingSortTime(closing) {
+    const competence = closing.checklist?.competence || '';
+    const competenceMatch = String(competence).match(/^(\d{1,2})\s*\/\s*(\d{4})$/);
+    if (competenceMatch) return new Date(Number(competenceMatch[2]), Number(competenceMatch[1]) - 1, 1).getTime();
+    const labelMatch = String(closing.label || '').match(/(?:m[eê]s|compet[eê]ncia)\s*(\d{1,2})(?:\s*\/\s*(\d{4}))?/i);
+    if (labelMatch) {
+      const year = Number(labelMatch[2] || new Date(closing.savedAt || Date.now()).getFullYear());
+      return new Date(year, Number(labelMatch[1]) - 1, 1).getTime();
+    }
+    return new Date(closing.savedAt || 0).getTime();
+  }
   function exportClosingPackage(id) {
     const closing = (uiState.closings || []).find(item => item.id === id);
     if (!closing) return alert('Fechamento não encontrado.');
@@ -2497,7 +2508,7 @@
   function renderClosings() {
     const container = document.getElementById('closingList');
     if (!container) return;
-    const closings = uiState.closings || [];
+    const closings = [...(uiState.closings || [])].sort((left, right) => getClosingSortTime(right) - getClosingSortTime(left));
     if (!closings.length) {
       container.innerHTML = '<p class="muted small">Nenhum fechamento salvo.</p>';
       return;
