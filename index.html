@@ -845,6 +845,10 @@
       <div class="toolbar" style="margin:0">
         <button onclick="finishClosing()">Finalizar fechamento atual</button>
         <button class="warning" onclick="startNewClosing()">Iniciar novo fechamento</button>
+        <label class="button-label secondary-label">
+          Importar fechamento
+          <input id="closingPackageFile" type="file" accept="application/json,.json" />
+        </label>
       </div>
     </div>
     <div id="closingList" class="history-list"></div>
@@ -1322,6 +1326,13 @@
     const file = event.target.files[0];
     if (!file) return;
     importBackup(await file.text());
+    event.target.value = '';
+  });
+
+  document.getElementById('closingPackageFile').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    importClosingPackage(await file.text());
     event.target.value = '';
   });
 
@@ -2431,6 +2442,42 @@
     saveStateToLocal();
     renderClosings();
   }
+  function exportClosingPackage(id) {
+    const closing = (uiState.closings || []).find(item => item.id === id);
+    if (!closing) return alert('Fechamento não encontrado.');
+    const packageData = {
+      packageType: 'mvp-inventario-siga-closing',
+      packageVersion: 1,
+      exportedAt: new Date().toISOString(),
+      closing: cloneData(closing),
+    };
+    const blob = new Blob([JSON.stringify(packageData, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `fechamento-${String(closing.label || 'sem-nome').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+  function importClosingPackage(raw) {
+    let packageData;
+    try { packageData = JSON.parse(raw); } catch { return alert('Pacote de fechamento inválido.'); }
+    const closing = packageData?.closing;
+    if (packageData?.packageType !== 'mvp-inventario-siga-closing' || !closing?.snapshot || !closing.label) return alert('Este arquivo não é um pacote de fechamento válido.');
+    const existingIndex = (uiState.closings || []).findIndex(item => item.label === closing.label);
+    if (existingIndex >= 0 && !confirm(`Já existe o fechamento "${closing.label}". Substituí-lo pelo pacote importado?`)) return;
+    if (existingIndex >= 0) uiState.closings.splice(existingIndex, 1);
+    uiState.closings = [closing, ...(uiState.closings || [])];
+    const stockEntry = createStockHistoryEntryFromSnapshot(closing.label, closing.savedAt, closing.snapshot);
+    if (stockEntry) {
+      uiState.stockHistory = (uiState.stockHistory || []).filter(entry => entry.label !== closing.label);
+      uiState.stockHistory = [stockEntry, ...uiState.stockHistory].slice(0, 60);
+    }
+    saveStateToLocal();
+    renderAll();
+    showTab('fechamentos');
+    alert(`Fechamento ${closing.label} importado sem substituir o restante do histórico.`);
+  }
   function renderClosings() {
     const container = document.getElementById('closingList');
     if (!container) return;
@@ -2453,6 +2500,7 @@
             <button onclick="restoreClosing('${closing.id}')">Restaurar</button>
             <button onclick="exportClosingWorkbook('${closing.id}')">Exportar XLSX</button>
             <button class="secondary" onclick="openClosingDocuments('${closing.id}')">Documentos</button>
+            <button class="secondary" onclick="exportClosingPackage('${closing.id}')">Exportar pacote</button>
             <button class="danger" onclick="removeClosing('${closing.id}')">Excluir</button>
           </div>
         </div>
