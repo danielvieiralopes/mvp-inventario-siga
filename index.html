@@ -505,6 +505,9 @@
 
     .col-hidden { display: none !important; }
 
+    .reorder-row { cursor: grab; }
+    .reorder-row:active { cursor: grabbing; }
+
     .stock-summary {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -656,6 +659,7 @@
     <div class="table-tools">
       <div class="toolbar">
         <input id="searchInventory" class="search" type="text" placeholder="Buscar por item ou descrição..." oninput="renderInventory()" />
+        <label class="chip"><input id="inventoryReorderMode" type="checkbox" onchange="toggleInventoryReorderMode(this.checked)" /><span>Reordenar itens</span></label>
         <button onclick="addNewItem()">Novo item</button>
         <button onclick="setEmptyToZero()">Preencher vazios com 0</button>
         <button class="warning" onclick="resetPhysicalFromBase()">Restaurar qtd da BASE</button>
@@ -1007,6 +1011,7 @@
       closings: [],
       stockHistory: [],
       dailySales: null,
+      inventoryReorderMode: false,
       closingChecklist: { competence: '', establishment: '', documents: {}, values: {} },
     };
   }
@@ -1020,6 +1025,7 @@
   let pendingFocusIndex = null;
   let visibleBuyIndexes = [];
   let pendingBuyFocusIndex = null;
+  let draggingInventoryIndex = null;
   let autoSaveTimer = null;
 
   function normalizeCode(value) { return String(value ?? '').trim().toUpperCase(); }
@@ -1269,6 +1275,7 @@
       closings: savedClosings,
       stockHistory: savedStockHistory,
       dailySales: saved?.dailySales && typeof saved.dailySales === 'object' ? saved.dailySales : null,
+      inventoryReorderMode: Boolean(saved?.inventoryReorderMode),
       closingChecklist: {
         ...defaults.closingChecklist,
         ...(saved?.closingChecklist || {}),
@@ -1449,20 +1456,54 @@
       `;
     }
   }
+  function toggleInventoryReorderMode(enabled) {
+    uiState.inventoryReorderMode = Boolean(enabled);
+    saveStateToLocal();
+    renderInventory();
+  }
+  function handleInventoryDragStart(event, index) {
+    if (!uiState.inventoryReorderMode) return;
+    draggingInventoryIndex = index;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(index));
+  }
+  function handleInventoryDragOver(event) {
+    if (!uiState.inventoryReorderMode) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }
+  function handleInventoryDrop(event, targetIndex) {
+    event.preventDefault();
+    if (!uiState.inventoryReorderMode || draggingInventoryIndex === null || draggingInventoryIndex === targetIndex) return;
+    const [movedProduct] = products.splice(draggingInventoryIndex, 1);
+    const insertIndex = draggingInventoryIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    products.splice(Math.max(0, insertIndex), 0, movedProduct);
+    draggingInventoryIndex = null;
+    saveStateToLocal();
+    renderAll();
+  }
+  function handleInventoryDragEnd() {
+    draggingInventoryIndex = null;
+  }
   function renderInventory() {
     const body = document.getElementById('inventoryBody');
     const search = normalizeCode(document.getElementById('searchInventory').value);
+    const reorderToggle = document.getElementById('inventoryReorderMode');
+    if (reorderToggle) reorderToggle.checked = Boolean(uiState.inventoryReorderMode);
     body.innerHTML = '';
     const filtered = products.filter(product => !search || product.item.includes(search) || normalizeCode(product.descricao).includes(search));
     visibleInventoryIndexes = filtered.map(product => products.indexOf(product));
     filtered.forEach((product, visibleIndex) => {
       const index = products.indexOf(product);
       const rowClass = product.disabled ? 'row-disabled' : '';
+      const reorderAttributes = uiState.inventoryReorderMode
+        ? `draggable="true" class="${rowClass} reorder-row" ondragstart="handleInventoryDragStart(event, ${index})" ondragover="handleInventoryDragOver(event)" ondrop="handleInventoryDrop(event, ${index})" ondragend="handleInventoryDragEnd()"`
+        : `class="${rowClass}"`;
       const isEditing = Boolean(editingBuffers[index]);
       if (isEditing) {
         const buf = editingBuffers[index];
         body.insertAdjacentHTML('beforeend', `
-        <tr class="${rowClass}">
+        <tr ${reorderAttributes}>
           <td data-col="index">${visibleIndex + 1}</td>
           <td data-col="item"><div class="edit-cell"><span class="edit-label">Item</span><input id="edit_item_${index}" type="text" value="${escapeHtml(buf.item)}"></div></td>
           <td data-col="descricao"><div class="edit-cell"><span class="edit-label">Descrição</span><input id="edit_descricao_${index}" type="text" value="${escapeHtml(buf.descricao)}"></div></td>
@@ -1477,7 +1518,7 @@
         </tr>`);
       } else {
         body.insertAdjacentHTML('beforeend', `
-        <tr class="${rowClass}">
+        <tr ${reorderAttributes}>
           <td data-col="index">${visibleIndex + 1}</td>
           <td data-col="item"><b>${product.item}</b> ${product.disabled ? '<span class="pill">Desativado</span>' : ''}</td>
           <td data-col="descricao">${escapeHtml(product.descricao)}</td>
